@@ -32,7 +32,7 @@ const operations = [
   {
     num: "01",
     title: "Caven Financial TotalPay",
-    desc: "A comprehensive payment solution that simplifies premium financing with flexible terms and competitive rates.",
+    desc: "A comprehensive banking solution that simplifies transactions with flexible terms and competitive rates.",
   },
   {
     num: "02",
@@ -47,7 +47,7 @@ const operations = [
   {
     num: "04",
     title: "Caven Financial Payments",
-    desc: "Seamless payment processing solutions for insurance agencies and their policyholders.",
+    desc: "Seamless payment processing solutions for individuals and businesses worldwide.",
   },
 ];
 
@@ -107,7 +107,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         <div className="absolute bottom-8 left-0 right-0 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <p className="text-white text-xl md:text-2xl font-semibold drop-shadow-lg" data-testid="text-banking-tagline">
-            Your Trusted Partner in Premium Financing & Wealth Management
+            Your Trusted Partner in Banking & Wealth Management
           </p>
         </div>
       </section>
@@ -243,9 +243,9 @@ export default function Home() {
             Our Banking
           </h2>
           <p className="mt-4 text-muted-foreground max-w-3xl mx-auto text-lg">
-            Caven Wealth Financial is a privately held company committed to innovation,
-            integrity, and the highest standards of service. We partner with agencies of
-            all sizes to deliver scalable financing solutions.
+            Caven Wealth Financial is a trusted banking institution committed to innovation,
+            integrity, and the highest standards of service. We partner with clients of
+            all sizes to deliver secure and scalable banking solutions.
           </p>
           <Link href="/company">
             <Button className="mt-6 shadow-lg hover:shadow-xl transition-all duration-300" data-testid="button-learn-about-company">
@@ -283,7 +283,7 @@ export default function Home() {
           <div className="text-center mb-6">
             <p className="text-muted-foreground" data-testid="text-bottom-statement">
               Over the past 47 years, Caven Wealth Financial has grown into one of the
-              largest providers of premium financing in the United States and Puerto Rico.
+              most trusted banking institutions in the United States and Puerto Rico.
             </p>
           </div>
           <div className="flex items-center justify-center gap-6 flex-wrap">

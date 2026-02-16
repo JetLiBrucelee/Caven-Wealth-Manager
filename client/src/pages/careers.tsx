@@ -40,7 +40,7 @@ const openings = [
     location: "Remote",
     type: "Full-Time",
     description:
-      "Analyze financial data, prepare reports, and support strategic decision-making for our premium financing operations.",
+      "Analyze financial data, prepare reports, and support strategic decision-making for our banking operations.",
   },
   {
     id: 4,

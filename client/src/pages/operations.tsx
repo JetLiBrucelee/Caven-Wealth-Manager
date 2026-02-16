@@ -16,14 +16,14 @@ const services = [
     id: "totalpay",
     icon: CreditCard,
     title: "Caven Financial TotalPay",
-    subtitle: "Comprehensive Premium Financing",
+    subtitle: "Comprehensive Banking Solutions",
     description:
-      "TotalPay is our flagship premium financing solution, offering flexible terms and competitive rates that help insurance agencies grow their book of business.",
+      "TotalPay is our flagship banking solution, offering flexible terms and competitive rates that help clients manage and grow their finances.",
     features: [
-      "Flexible payment schedules tailored to policyholder needs",
+      "Flexible payment schedules tailored to client needs",
       "Competitive interest rates with transparent pricing",
       "Fast approval and funding process",
-      "Seamless integration with agency management systems",
+      "Seamless integration with banking management systems",
       "Dedicated account management support",
     ],
   },
@@ -63,13 +63,13 @@ const services = [
     title: "Caven Financial Payments",
     subtitle: "Seamless Payment Processing",
     description:
-      "Our payment processing solutions make it easy for policyholders to pay premiums and for agencies to manage collections. Support for multiple payment methods and automated recurring billing.",
+      "Our payment processing solutions make it easy for clients to manage payments and transfers. Support for multiple payment methods and automated recurring billing.",
     features: [
       "Multiple payment method support (ACH, credit, debit)",
       "Automated recurring payment scheduling",
       "Real-time payment tracking and notifications",
       "PCI-compliant secure processing",
-      "Custom-branded payment portals for agencies",
+      "Custom-branded payment portals for clients",
     ],
   },
 ];
@@ -86,7 +86,7 @@ export default function Operations() {
           </h1>
           <p className="mt-4 text-lg text-blue-100 max-w-2xl">
             Four powerful solutions working together to deliver a complete financial 
-            services ecosystem for insurance professionals.
+            services ecosystem for banking professionals.
           </p>
         </div>
       </section>

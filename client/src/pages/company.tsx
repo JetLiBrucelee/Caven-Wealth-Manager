@@ -14,12 +14,12 @@ import {
 } from "lucide-react";
 
 const timeline = [
-  { year: "1977", event: "Founded as a premium financing company serving the southeastern United States." },
-  { year: "1990", event: "Expanded operations nationwide, becoming one of the top 10 premium finance companies in the U.S." },
-  { year: "2005", event: "Launched digital platform for online policy management and payment processing." },
-  { year: "2015", event: "Introduced the ONE Platform, unifying all services into a single integrated solution." },
-  { year: "2020", event: "Surpassed $10 billion in annual financing volume and expanded into wealth management." },
-  { year: "2024", event: "Financed $17 billion across 835,000 loans with a 97% customer satisfaction rating." },
+  { year: "1977", event: "Founded as a premium banking institution serving the southeastern United States." },
+  { year: "1990", event: "Expanded operations nationwide, becoming one of the top 10 premium banking institutions in the U.S." },
+  { year: "2005", event: "Launched digital banking platform for online account management and payment processing." },
+  { year: "2015", event: "Introduced the ONE Platform, unifying all banking services into a single integrated solution." },
+  { year: "2020", event: "Surpassed $10 billion in annual banking volume and expanded into wealth management." },
+  { year: "2024", event: "Processed $17 billion across 835,000 accounts with a 97% customer satisfaction rating." },
 ];
 
 const values = [
@@ -80,14 +80,14 @@ export default function Company() {
               </div>
               <p className="text-muted-foreground text-lg">
                 Founded in 1977, Caven Wealth Financial began with a simple mission: to make 
-                premium financing accessible, efficient, and fair. Over the decades, we have 
-                grown from a regional provider into one of the largest and most trusted names in 
-                premium financing in the United States and Puerto Rico.
+                banking accessible, efficient, and fair. Over the decades, we have 
+                grown from a regional bank into one of the largest and most trusted names in 
+                banking in the United States and Puerto Rico.
               </p>
               <p className="mt-4 text-muted-foreground">
-                Today, we serve thousands of insurance agencies and their policyholders, 
-                processing billions of dollars in financing annually through our proprietary 
-                technology platform.
+                Today, we serve thousands of clients and businesses, 
+                processing billions of dollars in transactions annually through our proprietary 
+                banking platform.
               </p>
             </div>
 
@@ -121,7 +121,7 @@ export default function Company() {
               </h2>
             </div>
             <p className="text-muted-foreground max-w-3xl mx-auto text-lg">
-              To empower insurance professionals with innovative financing solutions and 
+              To empower individuals and businesses with innovative banking solutions and 
               technology that drive growth, efficiency, and exceptional customer experiences.
             </p>
           </div>
