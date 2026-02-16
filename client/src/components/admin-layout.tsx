@@ -48,9 +48,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-screen bg-muted/30">
       <aside className="w-64 bg-white dark:bg-slate-900 border-r flex flex-col shrink-0">
-        <div className="p-5 border-b">
+        <div className="p-6 border-b">
           <div className="flex items-center justify-center" data-testid="text-sidebar-brand">
-            <img src="/logo.png" alt="Caven Wealth Financial" className="h-20 w-auto object-contain" />
+            <img src="/logo.png" alt="Caven Wealth Financial" className="h-28 w-auto object-contain drop-shadow-md" />
           </div>
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
