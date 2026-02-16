@@ -111,13 +111,13 @@ function Header() {
   return (
     <header className="sticky top-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-200/60 dark:border-gray-800/60 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between gap-4 h-40">
+        <div className="flex items-center justify-between gap-4 h-44">
           <Link href="/" data-testid="link-logo">
-            <div className="bg-white rounded-xl p-2 shadow-md">
+            <div className="bg-white rounded-xl p-3 shadow-md">
               <img
                 src="/logo.png"
                 alt="Caven Wealth Financial"
-                className="h-20 md:h-28 w-auto object-contain"
+                className="h-28 md:h-36 w-auto object-contain"
               />
             </div>
           </Link>
