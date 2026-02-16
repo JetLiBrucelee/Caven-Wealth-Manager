@@ -325,7 +325,7 @@ export default function Portal() {
                   Access Code
                 </h1>
                 <p className="text-sm text-gray-500 mb-6">
-                  Enter the 6-digit code provided by your account manager
+                  Enter your 6-digit code
                 </p>
 
                 <form onSubmit={handleVerifyCode} className="space-y-4">
