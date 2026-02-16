@@ -114,10 +114,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteCustomer(id: number): Promise<boolean> {
-    await db.delete(transfers).where(eq(transfers.customerId, id));
-    await db.delete(transactions).where(eq(transactions.customerId, id));
-    const result = await db.delete(customers).where(eq(customers.id, id)).returning();
-    return result.length > 0;
+    return await db.transaction(async (tx) => {
+      await tx.delete(chatMessages).where(eq(chatMessages.customerId, id));
+      await tx.delete(accessCodes).where(eq(accessCodes.customerId, id));
+      await tx.delete(transfers).where(eq(transfers.customerId, id));
+      await tx.delete(transactions).where(eq(transactions.customerId, id));
+      const result = await tx.delete(customers).where(eq(customers.id, id)).returning();
+      return result.length > 0;
+    });
   }
 
   async validateCustomerPassword(username: string, password: string): Promise<Customer | null> {
