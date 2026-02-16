@@ -46,8 +46,16 @@ export default function AdminLogin() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center p-4 relative" style={{
+      background: "linear-gradient(145deg, #0f1a3e 0%, #162252 30%, #1a2a5e 50%, #14204a 75%, #0d1633 100%)"
+    }}>
+      <div className="absolute inset-0 opacity-15" style={{
+        backgroundImage: "url('/images/banking-bg.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }} />
+      <Card className="w-full max-w-md relative z-10">
         <CardHeader className="text-center space-y-2">
           <div className="mx-auto w-12 h-12 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mb-2">
             <Lock className="w-6 h-6 text-green-600 dark:text-green-400" />

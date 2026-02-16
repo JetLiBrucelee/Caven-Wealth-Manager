@@ -176,10 +176,16 @@ export default function Portal() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{
+    <div className="min-h-screen flex flex-col relative" style={{
       background: "linear-gradient(145deg, #0f1a3e 0%, #162252 30%, #1a2a5e 50%, #14204a 75%, #0d1633 100%)"
     }}>
-      <div className="flex-1 flex flex-col lg:flex-row items-center justify-center px-4 sm:px-8 lg:px-16 py-8 lg:py-0 gap-8 lg:gap-16 xl:gap-24 max-w-[1400px] mx-auto w-full">
+      <div className="absolute inset-0 opacity-15" style={{
+        backgroundImage: "url('/images/banking-bg.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }} />
+      <div className="relative z-10 flex-1 flex flex-col lg:flex-row items-center justify-center px-4 sm:px-8 lg:px-16 py-8 lg:py-0 gap-8 lg:gap-16 xl:gap-24 max-w-[1400px] mx-auto w-full">
         <div className="hidden lg:flex flex-col items-center lg:items-start gap-8 flex-1 max-w-[550px]">
           <div className="flex flex-col lg:flex-row items-center gap-8">
             <PhoneMockup />
@@ -354,14 +360,14 @@ export default function Portal() {
         </div>
       </div>
 
-      <div className="lg:hidden flex flex-col items-center gap-4 pb-6 px-4">
+      <div className="relative z-10 lg:hidden flex flex-col items-center gap-4 pb-6 px-4">
         <div className="flex items-center gap-3">
           <img src="/images/app-store-badge.png" alt="App Store" className="h-9" />
           <img src="/images/google-play-badge.png" alt="Google Play" className="h-9" />
         </div>
       </div>
 
-      <footer className="border-t border-white/10 py-4 px-6 lg:px-16">
+      <footer className="relative z-10 border-t border-white/10 py-4 px-6 lg:px-16">
         <div className="max-w-[1400px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-6 flex-wrap justify-center">
             <a href="/contact" className="text-white/70 hover:text-white text-xs font-medium transition-colors" data-testid="link-contact-us">
