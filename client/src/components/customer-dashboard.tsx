@@ -30,6 +30,9 @@ import {
   XCircle,
   Clock,
   MessageSquare,
+  TrendingUp,
+  TrendingDown,
+  ArrowUp,
 } from "lucide-react";
 
 interface CustomerData {
@@ -124,11 +127,11 @@ export default function CustomerDashboard({ customer: initialCustomer, onLogout 
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-950">
       <aside className="w-64 bg-white dark:bg-slate-900 border-r flex flex-col shrink-0">
-        <div className="p-4 border-b">
-          <div className="flex items-center gap-3" data-testid="text-dashboard-brand">
-            <img src="/logo.png" alt="Caven Wealth Financial" className="h-12 w-auto object-contain" />
+        <div className="p-5 border-b">
+          <div className="flex items-center justify-center" data-testid="text-dashboard-brand">
+            <img src="/logo.png" alt="Caven Wealth Financial" className="h-20 w-auto object-contain" />
           </div>
-          <p className="text-xs text-muted-foreground mt-2">Welcome, {customer.firstName}</p>
+          <p className="text-xs text-muted-foreground mt-3 text-center">Welcome, {customer.firstName}</p>
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {menuItems.map((item) => {
@@ -186,89 +189,359 @@ export default function CustomerDashboard({ customer: initialCustomer, onLogout 
   );
 }
 
+function useSimulatedStocks() {
+  const basePrices = [
+    { symbol: "VOO", base: 498.23, label: "S&P 500" },
+    { symbol: "BRK.B", base: 412.56, label: "Berkshire" },
+    { symbol: "JPM", base: 201.16, label: "JPMorgan" },
+    { symbol: "AAPL", base: 237.84, label: "Apple" },
+    { symbol: "MSFT", base: 415.67, label: "Microsoft" },
+  ];
+
+  const baseMarket = [
+    { name: "DJI", base: 0.6 },
+    { name: "NASDAQ", base: 1.1 },
+    { name: "Gold", base: -0.2 },
+    { name: "S&P 500", base: 0.9 },
+  ];
+
+  const [stocks, setStocks] = useState(() =>
+    basePrices.map((s) => {
+      const pctChange = (Math.random() - 0.4) * 1.5;
+      const price = s.base + s.base * (pctChange / 100);
+      return {
+        symbol: s.symbol,
+        price: price.toFixed(2),
+        change: `${pctChange >= 0 ? "+" : ""}${pctChange.toFixed(1)}%`,
+        label: s.label,
+        positive: pctChange >= 0,
+      };
+    })
+  );
+
+  const [market, setMarket] = useState(() =>
+    baseMarket.map((m) => {
+      const val = m.base + (Math.random() - 0.5) * 0.4;
+      return {
+        name: m.name,
+        change: `${val >= 0 ? "+" : ""}${val.toFixed(1)}%`,
+        positive: val >= 0,
+      };
+    })
+  );
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setStocks((prev) =>
+        prev.map((s, i) => {
+          const drift = (Math.random() - 0.48) * 0.3;
+          const oldPct = parseFloat(s.change);
+          const newPct = oldPct + drift;
+          const price = basePrices[i].base + basePrices[i].base * (newPct / 100);
+          return {
+            ...s,
+            price: price.toFixed(2),
+            change: `${newPct >= 0 ? "+" : ""}${newPct.toFixed(1)}%`,
+            positive: newPct >= 0,
+          };
+        })
+      );
+      setMarket((prev) =>
+        prev.map((m) => {
+          const drift = (Math.random() - 0.5) * 0.15;
+          const oldVal = parseFloat(m.change);
+          const newVal = oldVal + drift;
+          return {
+            ...m,
+            change: `${newVal >= 0 ? "+" : ""}${newVal.toFixed(1)}%`,
+            positive: newVal >= 0,
+          };
+        })
+      );
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return { stocks, market };
+}
+
 function DashboardView({ customer, onNavigate }: { customer: CustomerData; onNavigate: (p: Page) => void }) {
   const [showAccount, setShowAccount] = useState(false);
+  const { stocks: stockData, market: marketSummary } = useSimulatedStocks();
 
   const { data: transfers } = useQuery<Transfer[]>({
     queryKey: ["/api/customer/transfers"],
     refetchInterval: 5000,
   });
 
+  const { data: transactions } = useQuery<Transaction[]>({
+    queryKey: ["/api/customer/transactions"],
+    refetchInterval: 10000,
+  });
+
   const pendingCount = transfers?.filter(t => t.status === "pending").length || 0;
+  const balance = parseFloat(customer.balance);
+  const liquidAssets = balance * 0.43;
+  const ytdReturn = ((balance * 0.032) / balance) * 100;
+
+  const advisorNotes = [
+    "Your portfolio allocation remains balanced. Consider tax-loss harvesting in tech.",
+    "Equity markets show continued momentum. Maintain current diversification strategy.",
+    "Bond yields stabilizing — review fixed income allocation for rebalancing opportunity.",
+  ];
+
+  const todayNote = advisorNotes[new Date().getDate() % advisorNotes.length];
+
+  const portfolioAllocation = [
+    { label: "Equities", pct: 45, color: "bg-blue-500" },
+    { label: "Fixed Income", pct: 25, color: "bg-emerald-500" },
+    { label: "Real Estate", pct: 15, color: "bg-amber-500" },
+    { label: "Cash & Equiv.", pct: 10, color: "bg-slate-400" },
+    { label: "Alternatives", pct: 5, color: "bg-purple-500" },
+  ];
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="md:col-span-2 bg-gradient-to-br from-blue-600 to-indigo-700 text-white border-0 shadow-xl">
-          <CardContent className="p-6">
-            <p className="text-blue-200 text-sm font-medium">Available Balance</p>
-            <p className="text-4xl font-bold mt-2" data-testid="text-dashboard-balance">{formatAmount(customer.balance)}</p>
-            <div className="mt-4 flex items-center gap-4 text-sm">
-              <div>
-                <p className="text-blue-200">Account</p>
-                <p className="font-mono flex items-center gap-2" data-testid="text-dashboard-account">
-                  {showAccount ? customer.accountNumber : "****" + customer.accountNumber.slice(-4)}
-                  <button onClick={() => setShowAccount(!showAccount)} className="opacity-70 hover:opacity-100">
-                    {showAccount ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                  </button>
-                </p>
-              </div>
-              <div>
-                <p className="text-blue-200">Routing</p>
-                <p className="font-mono" data-testid="text-dashboard-routing">{customer.routingNumber}</p>
-              </div>
-              <div>
-                <p className="text-blue-200">Type</p>
-                <p className="capitalize" data-testid="text-dashboard-type">{customer.accountType}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6 flex flex-col items-center justify-center text-center h-full">
-            <Clock className="w-8 h-8 text-amber-500 mb-2" />
-            <p className="text-2xl font-bold">{pendingCount}</p>
-            <p className="text-sm text-muted-foreground">Pending Transfers</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div>
-        <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: "Wire Transfer", icon: Send, page: "wire" as Page, color: "text-blue-600 bg-blue-50" },
-            { label: "External Transfer", icon: ArrowRightLeft, page: "external" as Page, color: "text-green-600 bg-green-50" },
-            { label: "Internal Transfer", icon: ArrowLeftRight, page: "internal" as Page, color: "text-purple-600 bg-purple-50" },
-            { label: "Bill Pay", icon: Receipt, page: "billpay" as Page, color: "text-orange-600 bg-orange-50" },
-          ].map((action) => (
-            <Card
-              key={action.page}
-              className="cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => onNavigate(action.page)}
-              data-testid={`card-action-${action.page}`}
-            >
-              <CardContent className="p-5 flex flex-col items-center text-center gap-3">
-                <div className={`p-3 rounded-xl ${action.color}`}>
-                  <action.icon className="w-6 h-6" />
-                </div>
-                <span className="text-sm font-medium">{action.label}</span>
-              </CardContent>
-            </Card>
-          ))}
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold" data-testid="text-dashboard-title">Dashboard overview</h2>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <DollarSign className="w-4 h-4" />
+          <span>{format(new Date(), "MMMM yyyy")}</span>
         </div>
       </div>
 
+      <Card>
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Current U.S. Stocks</h3>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-xs text-green-600 dark:text-green-400 font-medium">market open</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {stockData.map((stock) => (
+              <div
+                key={stock.symbol}
+                className="border rounded-xl p-4 bg-white dark:bg-slate-800 hover:shadow-md transition-shadow"
+                data-testid={`card-stock-${stock.symbol}`}
+              >
+                <p className="font-bold text-base text-slate-800 dark:text-white">{stock.symbol}</p>
+                <p className="text-xl font-bold mt-1">${stock.price}</p>
+                <div className="flex items-center gap-1 mt-1">
+                  <span className={`text-xs font-semibold ${stock.positive ? "text-green-600" : "text-red-500"}`}>
+                    {stock.change}
+                  </span>
+                  <span className="text-xs text-muted-foreground">{stock.label}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2 mb-1">
+              <DollarSign className="w-5 h-5 text-amber-500" />
+              <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400">Total balance</h3>
+            </div>
+            <p className="text-4xl font-bold mt-2" data-testid="text-dashboard-balance">{formatAmount(customer.balance)}</p>
+            <p className="text-green-600 text-sm font-medium mt-1 flex items-center gap-1" data-testid="text-ytd-return">
+              <ArrowUp className="w-3.5 h-3.5" /> {ytdReturn.toFixed(1)}% YTD
+            </p>
+            <Separator className="my-4" />
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Liquid assets</span>
+              <span className="font-bold" data-testid="text-liquid-assets">
+                ${liquidAssets >= 1000000 ? (liquidAssets / 1000000).toFixed(1) + "M" : liquidAssets.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-sm mt-2">
+              <span className="text-muted-foreground">Account</span>
+              <span className="font-mono flex items-center gap-2" data-testid="text-dashboard-account">
+                {showAccount ? customer.accountNumber : "••••" + customer.accountNumber.slice(-4)}
+                <button
+                  type="button"
+                  onClick={() => setShowAccount(!showAccount)}
+                  className="text-muted-foreground hover:text-foreground"
+                  data-testid="button-toggle-account"
+                >
+                  {showAccount ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-sm mt-2">
+              <span className="text-muted-foreground">Account type</span>
+              <span className="capitalize font-medium" data-testid="text-dashboard-type">{customer.accountType}</span>
+            </div>
+            {pendingCount > 0 && (
+              <div className="mt-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-amber-600" />
+                <span className="text-sm text-amber-700 dark:text-amber-300">{pendingCount} pending transfer{pendingCount > 1 ? "s" : ""}</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm">
+          <CardContent className="p-6">
+            <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-4">Market summary</h3>
+            <div className="space-y-3">
+              {marketSummary.map((item) => (
+                <div key={item.name} className="flex items-center justify-between py-2 border-b last:border-0" data-testid={`market-${item.name.toLowerCase().replace(/[^a-z]/g, "")}`}>
+                  <span className="text-sm font-medium">{item.name}</span>
+                  <span className={`text-sm font-bold flex items-center gap-1 ${item.positive ? "text-green-600" : "text-red-500"}`}>
+                    {item.positive ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+                    {item.change.replace("+", "").replace("-", "")}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="shadow-sm bg-blue-50/50 dark:bg-blue-950/30">
+        <CardContent className="p-5">
+          <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">Today's advisor note</h3>
+          <p className="text-sm text-slate-700 dark:text-slate-300 italic" data-testid="text-advisor-note">
+            "{todayNote}"
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-sm">
+        <CardContent className="p-6">
+          <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-4">Investment Analytics — Portfolio Allocation</h3>
+          <div className="flex h-4 rounded-full overflow-hidden mb-4">
+            {portfolioAllocation.map((item) => (
+              <div
+                key={item.label}
+                className={`${item.color} transition-all`}
+                style={{ width: `${item.pct}%` }}
+                title={`${item.label}: ${item.pct}%`}
+              />
+            ))}
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {portfolioAllocation.map((item) => (
+              <div key={item.label} className="flex items-center gap-2" data-testid={`allocation-${item.label.toLowerCase().replace(/[^a-z]/g, "")}`}>
+                <span className={`w-3 h-3 rounded-full ${item.color} shrink-0`} />
+                <div>
+                  <p className="text-xs text-muted-foreground">{item.label}</p>
+                  <p className="text-sm font-bold">{item.pct}%</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <Separator className="my-4" />
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground">Total Return</p>
+              <p className="text-lg font-bold text-green-600" data-testid="text-total-return">+{ytdReturn.toFixed(1)}%</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground">Risk Score</p>
+              <p className="text-lg font-bold" data-testid="text-risk-score">Moderate</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground">Dividend Yield</p>
+              <p className="text-lg font-bold text-blue-600" data-testid="text-dividend-yield">2.4%</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground">Asset Classes</p>
+              <p className="text-lg font-bold" data-testid="text-asset-classes">{portfolioAllocation.length}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: "Wire Transfer", icon: Send, page: "wire" as Page, color: "text-blue-600 bg-blue-50 dark:bg-blue-950" },
+          { label: "External Transfer", icon: ArrowRightLeft, page: "external" as Page, color: "text-green-600 bg-green-50 dark:bg-green-950" },
+          { label: "Internal Transfer", icon: ArrowLeftRight, page: "internal" as Page, color: "text-purple-600 bg-purple-50 dark:bg-purple-950" },
+          { label: "Bill Pay", icon: Receipt, page: "billpay" as Page, color: "text-orange-600 bg-orange-50 dark:bg-orange-950" },
+        ].map((action) => (
+          <Card
+            key={action.page}
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => onNavigate(action.page)}
+            data-testid={`card-action-${action.page}`}
+          >
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className={`p-2.5 rounded-lg ${action.color}`}>
+                <action.icon className="w-5 h-5" />
+              </div>
+              <span className="text-sm font-medium">{action.label}</span>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Card className="shadow-sm">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-semibold text-slate-600 dark:text-slate-400">Recent Transaction History</CardTitle>
+            <Button variant="ghost" size="sm" onClick={() => onNavigate("history")} data-testid="button-view-all-transactions" className="text-xs">
+              View All
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {!transactions?.length ? (
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              <History className="w-8 h-8 mx-auto mb-2 opacity-40" />
+              No transactions yet
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {transactions.slice(0, 6).map((t) => (
+                <div key={t.id} className="flex items-center justify-between py-2.5 border-b last:border-0" data-testid={`dashboard-tx-${t.id}`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                      t.type === "credit" || t.type === "deposit"
+                        ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                        : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+                    }`}>
+                      {t.type === "credit" || t.type === "deposit" ? "+" : "-"}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{t.description}</p>
+                      <p className="text-xs text-muted-foreground">{format(new Date(t.date), "MMM d, yyyy")}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-sm font-semibold ${
+                      t.type === "credit" || t.type === "deposit" ? "text-green-600" : "text-red-600"
+                    }`}>
+                      {t.type === "credit" || t.type === "deposit" ? "+" : "-"}{formatAmount(t.amount)}
+                    </p>
+                    <p className="text-xs text-muted-foreground font-mono">{t.reference || ""}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {transfers && transfers.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Recent Transfers</CardTitle>
+        <Card className="shadow-sm">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold text-slate-600 dark:text-slate-400">Recent Transfers</CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => onNavigate("transfers")} data-testid="button-view-all-transfers" className="text-xs">
+                View All
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {transfers.slice(0, 5).map((t) => (
-                <div key={t.id} className="flex items-center justify-between py-2 border-b last:border-0">
+            <div className="space-y-2">
+              {transfers.slice(0, 4).map((t) => (
+                <div key={t.id} className="flex items-center justify-between py-2.5 border-b last:border-0">
                   <div className="flex items-center gap-3">
                     <StatusIcon status={t.status} />
                     <div>
