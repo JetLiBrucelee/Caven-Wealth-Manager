@@ -113,11 +113,13 @@ function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-4 h-40">
           <Link href="/" data-testid="link-logo">
-            <img
-              src="/logo.png"
-              alt="Caven Wealth Financial"
-              className="h-24 md:h-36 w-auto object-contain"
-            />
+            <div className="bg-white rounded-xl p-2 shadow-md">
+              <img
+                src="/logo.png"
+                alt="Caven Wealth Financial"
+                className="h-20 md:h-28 w-auto object-contain"
+              />
+            </div>
           </Link>
 
           <nav className="hidden md:flex items-center gap-0.5" data-testid="nav-desktop">
@@ -206,7 +208,9 @@ function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="md:col-span-2">
-            <img src="/logo.png" alt="Caven Wealth Financial" className="h-12 w-auto object-contain mb-4 brightness-200" />
+            <div className="bg-white rounded-lg p-2 inline-block mb-4">
+              <img src="/logo.png" alt="Caven Wealth Financial" className="h-10 w-auto object-contain" />
+            </div>
             <p className="mt-1 text-sm text-gray-400 max-w-md">
               A trusted leader in premium financing and wealth management solutions,
               serving clients across the United States and Puerto Rico since 1977.

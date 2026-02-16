@@ -50,6 +50,8 @@ interface CustomerData {
   accountType: string;
   balance: string;
   status: string;
+  hasDebitCard: boolean;
+  hasCreditCard: boolean;
   createdAt: string;
 }
 
@@ -87,10 +89,11 @@ interface Transaction {
   beneficiaryAccount: string | null;
 }
 
-type Page = "dashboard" | "wire" | "external" | "internal" | "billpay" | "profile" | "history" | "transfers";
+type Page = "dashboard" | "wire" | "external" | "internal" | "billpay" | "profile" | "history" | "transfers" | "cards";
 
 const menuItems: { label: string; icon: any; page: Page }[] = [
   { label: "Dashboard", icon: LayoutDashboard, page: "dashboard" },
+  { label: "My Cards", icon: CreditCard, page: "cards" },
   { label: "Wire Transfer", icon: Send, page: "wire" },
   { label: "External Transfer", icon: ArrowRightLeft, page: "external" },
   { label: "Internal Transfer", icon: ArrowLeftRight, page: "internal" },
@@ -170,6 +173,7 @@ export default function CustomerDashboard({ customer: initialCustomer, onLogout 
           {currentPage === "billpay" && <TransferForm type="bill_pay" customer={customer} />}
           {currentPage === "transfers" && <TransferStatusView />}
           {currentPage === "history" && <TransactionHistoryView />}
+          {currentPage === "cards" && <CardsView customer={customer} />}
           {currentPage === "profile" && <ProfileView customer={customer} />}
         </main>
       </div>
@@ -550,6 +554,151 @@ function TransactionHistoryView() {
           )}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function CardsView({ customer }: { customer: CustomerData }) {
+  const cardNumber = customer.accountNumber.replace(/(.{4})/g, "$1 ").trim();
+  const lastFour = customer.accountNumber.slice(-4);
+  const expMonth = String(new Date().getMonth() + 1).padStart(2, "0");
+  const expYear = String(new Date().getFullYear() + 4).slice(-2);
+
+  return (
+    <div className="space-y-8">
+      <h2 className="text-xl font-bold" data-testid="text-cards-title">My Cards</h2>
+
+      {customer.hasDebitCard && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Debit Card</h3>
+          <div
+            className="relative w-full max-w-md h-56 rounded-2xl overflow-hidden shadow-2xl cursor-default select-none"
+            style={{
+              background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 70%, #1a1a2e 100%)",
+            }}
+            data-testid="card-debit"
+          >
+            <div className="absolute inset-0 opacity-10" style={{
+              backgroundImage: `radial-gradient(circle at 70% 30%, rgba(255,255,255,0.15) 0%, transparent 50%),
+                                radial-gradient(circle at 30% 80%, rgba(255,255,255,0.08) 0%, transparent 40%)`
+            }} />
+
+            <div className="relative h-full flex flex-col justify-between p-6">
+              <div className="flex items-center justify-between">
+                <div className="text-white font-bold text-lg tracking-wide" data-testid="text-card-bank-name">
+                  CAVEN WEALTH
+                </div>
+                <div className="text-white/60 text-xs font-medium uppercase tracking-widest">Debit</div>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-9 rounded-md overflow-hidden" style={{
+                  background: "linear-gradient(135deg, #f0c040 0%, #d4a030 50%, #c09020 100%)",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.3)"
+                }}>
+                  <div className="w-full h-full grid grid-cols-3 grid-rows-3 gap-px p-1">
+                    {Array.from({length: 9}).map((_, i) => (
+                      <div key={i} className="rounded-sm" style={{
+                        background: i % 2 === 0 ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.1)"
+                      }} />
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-5 h-4 rounded-sm bg-gray-400/20" />
+                </div>
+              </div>
+
+              <div className="text-white text-xl md:text-2xl font-mono tracking-[0.2em] drop-shadow-md" data-testid="text-card-number">
+                {cardNumber || "**** **** **** ****"}
+              </div>
+
+              <div className="flex items-end justify-between">
+                <div>
+                  <div className="text-white/50 text-[10px] uppercase tracking-wider mb-0.5">Card Holder</div>
+                  <div className="text-white text-sm font-semibold tracking-wide" data-testid="text-card-holder">
+                    {customer.firstName.toUpperCase()} {customer.lastName.toUpperCase()}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-white/50 text-[10px] uppercase tracking-wider mb-0.5">Expires</div>
+                  <div className="text-white text-sm font-semibold font-mono" data-testid="text-card-expiry">
+                    {expMonth}/{expYear}
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <div className="w-8 h-8 rounded-full bg-red-500 opacity-80" />
+                  <div className="w-8 h-8 rounded-full bg-amber-400 opacity-80 -ml-4" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <Card className="max-w-md">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Card Number</span>
+                <span className="font-mono">**** **** **** {lastFour}</span>
+              </div>
+              <Separator className="my-2" />
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Card Type</span>
+                <Badge variant="outline">Debit</Badge>
+              </div>
+              <Separator className="my-2" />
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Status</span>
+                <Badge className="bg-green-500">Active</Badge>
+              </div>
+              <Separator className="my-2" />
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Linked Account</span>
+                <span className="font-mono text-xs">{customer.accountNumber}</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {customer.hasCreditCard && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Credit Card</h3>
+          <div
+            className="relative w-full max-w-md h-56 rounded-2xl overflow-hidden shadow-2xl cursor-default select-none"
+            style={{
+              background: "linear-gradient(135deg, #2d2d2d 0%, #4a4a4a 50%, #2d2d2d 100%)",
+            }}
+            data-testid="card-credit"
+          >
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center">
+                <CreditCard className="w-16 h-16 text-white/20 mx-auto mb-3" />
+                <p className="text-white/70 text-lg font-bold tracking-wider">COMING SOON</p>
+                <p className="text-white/40 text-xs mt-1">Your credit card is being prepared</p>
+              </div>
+            </div>
+            <div className="absolute top-6 left-6 text-white/30 font-bold text-lg tracking-wide">
+              CAVEN WEALTH
+            </div>
+            <div className="absolute bottom-6 right-6 flex gap-1">
+              <div className="w-8 h-8 rounded-full bg-white/10" />
+              <div className="w-8 h-8 rounded-full bg-white/10 -ml-4" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!customer.hasDebitCard && !customer.hasCreditCard && (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <CreditCard className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-lg font-medium">No Cards Issued</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Contact your account manager to request a debit or credit card.
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, serial, index, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, serial, index, jsonb, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -40,6 +40,8 @@ export const customers = pgTable("customers", {
   accountType: text("account_type").notNull().default("savings"),
   balance: text("balance").notNull().default("0.00"),
   status: text("status").notNull().default("active"),
+  hasDebitCard: boolean("has_debit_card").notNull().default(false),
+  hasCreditCard: boolean("has_credit_card").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

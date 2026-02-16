@@ -286,12 +286,12 @@ export default function Home() {
               largest providers of premium financing in the United States and Puerto Rico.
             </p>
           </div>
-          <div className="flex items-center justify-center gap-4 flex-wrap">
+          <div className="flex items-center justify-center gap-6 flex-wrap">
             <a href="#" className="transition-transform hover:scale-105">
               <img
                 src="/images/google-play-badge.png"
                 alt="Get it on Google Play"
-                className="h-12 w-auto rounded-lg shadow-md"
+                className="h-20 md:h-24 w-auto rounded-xl shadow-lg"
                 data-testid="img-google-play"
               />
             </a>
@@ -299,7 +299,7 @@ export default function Home() {
               <img
                 src="/images/app-store-badge.png"
                 alt="Download on the App Store"
-                className="h-12 w-auto rounded-lg shadow-md"
+                className="h-20 md:h-24 w-auto rounded-xl shadow-lg"
                 data-testid="img-app-store"
               />
             </a>

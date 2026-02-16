@@ -108,27 +108,7 @@ export async function registerRoutes(
       const customer = await storage.getCustomer(customerLoginId);
       return res.json({
         authenticated: true,
-        customer: customer ? {
-          id: customer.id,
-          firstName: customer.firstName,
-          lastName: customer.lastName,
-          username: customer.username,
-          email: customer.email,
-          phone: customer.phone,
-          address: customer.address,
-          city: customer.city,
-          state: customer.state,
-          zipCode: customer.zipCode,
-          country: customer.country,
-          gender: customer.gender,
-          dateOfBirth: customer.dateOfBirth,
-          accountNumber: customer.accountNumber,
-          routingNumber: customer.routingNumber,
-          accountType: customer.accountType,
-          balance: customer.balance,
-          status: customer.status,
-          createdAt: customer.createdAt,
-        } : null,
+        customer: customer ? sanitizeCustomer(customer) : null,
       });
     } catch (error) {
       return res.status(500).json({ message: "Verification failed" });
@@ -138,27 +118,7 @@ export async function registerRoutes(
   app.get("/api/customer/me", requireCustomer, async (req, res) => {
     const customer = await storage.getCustomer((req.session as any).customerId);
     if (!customer) return res.status(401).json({ message: "Not authenticated" });
-    return res.json({
-      id: customer.id,
-      firstName: customer.firstName,
-      lastName: customer.lastName,
-      username: customer.username,
-      email: customer.email,
-      phone: customer.phone,
-      address: customer.address,
-      city: customer.city,
-      state: customer.state,
-      zipCode: customer.zipCode,
-      country: customer.country,
-      gender: customer.gender,
-      dateOfBirth: customer.dateOfBirth,
-      accountNumber: customer.accountNumber,
-      routingNumber: customer.routingNumber,
-      accountType: customer.accountType,
-      balance: customer.balance,
-      status: customer.status,
-      createdAt: customer.createdAt,
-    });
+    return res.json(sanitizeCustomer(customer));
   });
 
   app.post("/api/customer/logout", (req, res) => {
@@ -382,22 +342,46 @@ function requireCustomer(req: any, res: any, next: any) {
   next();
 }
 
+function sanitizeCustomer(customer: any) {
+  return {
+    id: customer.id,
+    firstName: customer.firstName,
+    lastName: customer.lastName,
+    username: customer.username,
+    email: customer.email,
+    phone: customer.phone,
+    address: customer.address,
+    city: customer.city,
+    state: customer.state,
+    zipCode: customer.zipCode,
+    country: customer.country,
+    gender: customer.gender,
+    dateOfBirth: customer.dateOfBirth,
+    accountNumber: customer.accountNumber,
+    routingNumber: customer.routingNumber,
+    accountType: customer.accountType,
+    balance: customer.balance,
+    status: customer.status,
+    hasDebitCard: customer.hasDebitCard,
+    hasCreditCard: customer.hasCreditCard,
+    createdAt: customer.createdAt,
+  };
+}
+
 function generateAccountNumber(): string {
-  const prefix = "4";
-  let num = prefix;
-  for (let i = 0; i < 9; i++) {
-    num += Math.floor(Math.random() * 10).toString();
-  }
-  return num;
+  const segments = [
+    String(Math.floor(Math.random() * 9) + 1),
+    String(Math.floor(Math.random() * 900 + 100)),
+    String(Math.floor(Math.random() * 900 + 100)),
+    String(Math.floor(Math.random() * 900 + 100)),
+  ];
+  return segments.join("");
 }
 
 function generateRoutingNumber(): string {
   const prefix = "0";
-  let num = prefix;
-  for (let i = 0; i < 8; i++) {
-    num += Math.floor(Math.random() * 10).toString();
-  }
-  return num;
+  const mid = String(Math.floor(Math.random() * 90000000 + 10000000));
+  return prefix + mid;
 }
 
 async function seedAdmin() {

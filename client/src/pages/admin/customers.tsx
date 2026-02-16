@@ -32,6 +32,8 @@ interface CustomerFormData {
   accountType: string;
   balance: string;
   status: string;
+  hasDebitCard: boolean;
+  hasCreditCard: boolean;
 }
 
 const emptyForm: CustomerFormData = {
@@ -48,9 +50,11 @@ const emptyForm: CustomerFormData = {
   country: "United States",
   gender: "",
   dateOfBirth: "",
-  accountType: "savings",
+  accountType: "checking",
   balance: "0.00",
   status: "active",
+  hasDebitCard: false,
+  hasCreditCard: false,
 };
 
 export default function AdminCustomers() {
@@ -134,6 +138,8 @@ export default function AdminCustomers() {
       accountType: customer.accountType,
       balance: customer.balance,
       status: customer.status,
+      hasDebitCard: customer.hasDebitCard ?? false,
+      hasCreditCard: customer.hasCreditCard ?? false,
     });
     setDialogOpen(true);
   }
@@ -432,9 +438,10 @@ export default function AdminCustomers() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="savings">Savings</SelectItem>
                         <SelectItem value="checking">Checking</SelectItem>
+                        <SelectItem value="savings">Savings</SelectItem>
                         <SelectItem value="business">Business</SelectItem>
+                        <SelectItem value="ira">IRA Account</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -464,6 +471,34 @@ export default function AdminCustomers() {
                     data-testid="input-balance"
                   />
                 </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-3">Card Options</h4>
+              <div className="space-y-3">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.hasDebitCard}
+                    onChange={(e) => setFormData({ ...formData, hasDebitCard: e.target.checked })}
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    data-testid="checkbox-debit-card"
+                  />
+                  <span className="text-sm font-medium">Issue Debit Card</span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.hasCreditCard}
+                    onChange={(e) => setFormData({ ...formData, hasCreditCard: e.target.checked })}
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    data-testid="checkbox-credit-card"
+                  />
+                  <span className="text-sm font-medium">Issue Credit Card</span>
+                </label>
               </div>
             </div>
 
