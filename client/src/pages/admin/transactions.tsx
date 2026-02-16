@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Pencil, Trash2, ArrowLeftRight, Receipt } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowLeftRight, Receipt, Search, Filter, X, ChevronDown, ChevronUp } from "lucide-react";
 import type { Transaction, Customer } from "@shared/schema";
 
 interface TransactionFormData {
@@ -49,6 +49,15 @@ export default function AdminTransactions() {
   const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null);
   const [viewingTransaction, setViewingTransaction] = useState<Transaction | null>(null);
   const [formData, setFormData] = useState<TransactionFormData>(emptyForm);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterCustomerId, setFilterCustomerId] = useState("");
+  const [filterType, setFilterType] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
+  const [filterAmountMin, setFilterAmountMin] = useState("");
+  const [filterAmountMax, setFilterAmountMax] = useState("");
 
   const { data: transactions, isLoading } = useQuery<Transaction[]>({
     queryKey: ["/api/transactions"],
@@ -56,6 +65,48 @@ export default function AdminTransactions() {
 
   const { data: customers } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
+  });
+
+  const hasActiveFilters = filterCustomerId || filterType || filterStatus || filterDateFrom || filterDateTo || filterAmountMin || filterAmountMax;
+
+  function clearFilters() {
+    setSearchQuery("");
+    setFilterCustomerId("");
+    setFilterType("");
+    setFilterStatus("");
+    setFilterDateFrom("");
+    setFilterDateTo("");
+    setFilterAmountMin("");
+    setFilterAmountMax("");
+  }
+
+  const filteredTransactions = transactions?.filter((tx) => {
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const customerName = getCustomerName(tx.customerId).toLowerCase();
+      const matchesSearch =
+        tx.description.toLowerCase().includes(q) ||
+        (tx.reference ?? "").toLowerCase().includes(q) ||
+        (tx.beneficiary ?? "").toLowerCase().includes(q) ||
+        customerName.includes(q) ||
+        tx.amount.includes(q);
+      if (!matchesSearch) return false;
+    }
+    if (filterCustomerId && tx.customerId !== parseInt(filterCustomerId)) return false;
+    if (filterType && tx.type !== filterType) return false;
+    if (filterStatus && tx.status !== filterStatus) return false;
+    if (filterDateFrom) {
+      const from = new Date(filterDateFrom);
+      if (new Date(tx.date) < from) return false;
+    }
+    if (filterDateTo) {
+      const to = new Date(filterDateTo);
+      to.setHours(23, 59, 59, 999);
+      if (new Date(tx.date) > to) return false;
+    }
+    if (filterAmountMin && parseFloat(tx.amount) < parseFloat(filterAmountMin)) return false;
+    if (filterAmountMax && parseFloat(tx.amount) > parseFloat(filterAmountMax)) return false;
+    return true;
   });
 
   const createMutation = useMutation({
@@ -149,7 +200,7 @@ export default function AdminTransactions() {
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h2 className="text-2xl font-bold" data-testid="text-page-title">Transactions</h2>
@@ -162,6 +213,159 @@ export default function AdminTransactions() {
       </div>
 
       <Card>
+        <CardContent className="p-4 space-y-4">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by customer, description, reference, or amount..."
+                className="pl-9"
+                data-testid="input-search-transactions"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  data-testid="button-clear-search"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            <Button
+              variant={showFilters ? "default" : "outline"}
+              onClick={() => setShowFilters(!showFilters)}
+              className="shrink-0"
+              data-testid="button-toggle-filters"
+            >
+              <Filter className="w-4 h-4 mr-2" />
+              Filters
+              {hasActiveFilters && (
+                <Badge variant="secondary" className="ml-2 px-1.5 py-0 text-xs">
+                  Active
+                </Badge>
+              )}
+              {showFilters ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />}
+            </Button>
+          </div>
+
+          {showFilters && (
+            <div className="border rounded-lg p-4 bg-muted/30 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Customer</Label>
+                  <Select value={filterCustomerId || "all"} onValueChange={(v) => setFilterCustomerId(v === "all" ? "" : v)}>
+                    <SelectTrigger data-testid="filter-customer">
+                      <SelectValue placeholder="All customers" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All customers</SelectItem>
+                      {customers?.map((c) => (
+                        <SelectItem key={c.id} value={String(c.id)}>
+                          {c.firstName} {c.lastName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Type</Label>
+                  <Select value={filterType || "all"} onValueChange={(v) => setFilterType(v === "all" ? "" : v)}>
+                    <SelectTrigger data-testid="filter-type">
+                      <SelectValue placeholder="All types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All types</SelectItem>
+                      <SelectItem value="credit">Credit</SelectItem>
+                      <SelectItem value="debit">Debit</SelectItem>
+                      <SelectItem value="transfer">Transfer</SelectItem>
+                      <SelectItem value="deposit">Deposit</SelectItem>
+                      <SelectItem value="withdrawal">Withdrawal</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Status</Label>
+                  <Select value={filterStatus || "all"} onValueChange={(v) => setFilterStatus(v === "all" ? "" : v)}>
+                    <SelectTrigger data-testid="filter-status">
+                      <SelectValue placeholder="All statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All statuses</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="failed">Failed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Amount Range</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      placeholder="Min"
+                      value={filterAmountMin}
+                      onChange={(e) => setFilterAmountMin(e.target.value)}
+                      data-testid="filter-amount-min"
+                      className="text-sm"
+                    />
+                    <span className="text-muted-foreground text-xs">to</span>
+                    <Input
+                      type="number"
+                      placeholder="Max"
+                      value={filterAmountMax}
+                      onChange={(e) => setFilterAmountMax(e.target.value)}
+                      data-testid="filter-amount-max"
+                      className="text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Date From</Label>
+                  <Input
+                    type="date"
+                    value={filterDateFrom}
+                    onChange={(e) => setFilterDateFrom(e.target.value)}
+                    data-testid="filter-date-from"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Date To</Label>
+                  <Input
+                    type="date"
+                    value={filterDateTo}
+                    onChange={(e) => setFilterDateTo(e.target.value)}
+                    data-testid="filter-date-to"
+                  />
+                </div>
+                <div className="sm:col-span-2 flex items-end">
+                  {hasActiveFilters && (
+                    <Button variant="ghost" size="sm" onClick={clearFilters} data-testid="button-clear-filters">
+                      <X className="w-4 h-4 mr-1" />
+                      Clear all filters
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {(searchQuery || hasActiveFilters) && filteredTransactions && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span data-testid="text-filter-results">
+            Showing {filteredTransactions.length} of {transactions?.length ?? 0} transactions
+          </span>
+        </div>
+      )}
+
+      <Card>
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-6 space-y-3">
@@ -169,10 +373,17 @@ export default function AdminTransactions() {
                 <Skeleton key={i} className="h-12 w-full" />
               ))}
             </div>
-          ) : !transactions?.length ? (
+          ) : !filteredTransactions?.length ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <ArrowLeftRight className="w-12 h-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No transactions yet</p>
+              <p className="text-muted-foreground">
+                {transactions?.length ? "No transactions match your filters" : "No transactions yet"}
+              </p>
+              {(searchQuery || hasActiveFilters) && transactions?.length ? (
+                <Button variant="ghost" onClick={clearFilters} className="mt-2" data-testid="button-clear-filters-empty">
+                  Clear filters
+                </Button>
+              ) : null}
             </div>
           ) : (
             <Table>
@@ -189,7 +400,7 @@ export default function AdminTransactions() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {transactions.map((tx) => (
+                {filteredTransactions.map((tx) => (
                   <TableRow
                     key={tx.id}
                     className="cursor-pointer"
