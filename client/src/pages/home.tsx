@@ -97,6 +97,21 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="relative w-full">
+        <img
+          src="/images/banking-stock.jpeg"
+          alt="Professional Banking Services"
+          className="w-full h-[400px] md:h-[500px] object-cover"
+          data-testid="img-banking-hero"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        <div className="absolute bottom-8 left-0 right-0 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <p className="text-white text-xl md:text-2xl font-semibold drop-shadow-lg" data-testid="text-banking-tagline">
+            Your Trusted Partner in Premium Financing & Wealth Management
+          </p>
+        </div>
+      </section>
+
       <section className="relative bg-slate-100 dark:bg-gray-900 py-4 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <img
