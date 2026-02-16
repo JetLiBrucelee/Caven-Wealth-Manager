@@ -29,6 +29,7 @@ function Router() {
       <Route path="/contact" component={Contact} />
       <Route path="/careers" component={Careers} />
       <Route path="/portal" component={Portal} />
+      <Route path="/admin" component={AdminLogin} />
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin/dashboard">
         <AdminLayout><AdminOverview /></AdminLayout>
