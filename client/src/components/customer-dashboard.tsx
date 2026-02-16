@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -29,6 +29,7 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
+  MessageSquare,
 } from "lucide-react";
 
 interface CustomerData {
@@ -89,7 +90,7 @@ interface Transaction {
   beneficiaryAccount: string | null;
 }
 
-type Page = "dashboard" | "wire" | "external" | "internal" | "billpay" | "profile" | "history" | "transfers" | "cards";
+type Page = "dashboard" | "wire" | "external" | "internal" | "billpay" | "profile" | "history" | "transfers" | "cards" | "support";
 
 const menuItems: { label: string; icon: any; page: Page }[] = [
   { label: "Dashboard", icon: LayoutDashboard, page: "dashboard" },
@@ -101,6 +102,7 @@ const menuItems: { label: string; icon: any; page: Page }[] = [
   { label: "Transfer Status", icon: Clock, page: "transfers" },
   { label: "Transaction History", icon: History, page: "history" },
   { label: "My Profile", icon: User, page: "profile" },
+  { label: "Support", icon: MessageSquare, page: "support" },
 ];
 
 const formatAmount = (amount: string) => {
@@ -122,11 +124,11 @@ export default function CustomerDashboard({ customer: initialCustomer, onLogout 
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-950">
       <aside className="w-64 bg-white dark:bg-slate-900 border-r flex flex-col shrink-0">
-        <div className="p-5 border-b">
-          <h1 className="text-lg font-bold text-blue-800 dark:text-blue-400" data-testid="text-dashboard-brand">
-            Caven Wealth Financial
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Welcome, {customer.firstName}</p>
+        <div className="p-4 border-b">
+          <div className="flex items-center gap-3" data-testid="text-dashboard-brand">
+            <img src="/logo.png" alt="Caven Wealth Financial" className="h-12 w-auto object-contain" />
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">Welcome, {customer.firstName}</p>
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {menuItems.map((item) => {
@@ -175,8 +177,11 @@ export default function CustomerDashboard({ customer: initialCustomer, onLogout 
           {currentPage === "history" && <TransactionHistoryView />}
           {currentPage === "cards" && <CardsView customer={customer} />}
           {currentPage === "profile" && <ProfileView customer={customer} />}
+          {currentPage === "support" && <SupportView />}
         </main>
       </div>
+
+      <FloatingChatButton currentPage={currentPage} onNavigate={setCurrentPage} />
     </div>
   );
 }
@@ -699,6 +704,133 @@ function CardsView({ customer }: { customer: CustomerData }) {
           </CardContent>
         </Card>
       )}
+    </div>
+  );
+}
+
+interface ChatMessage {
+  id: number;
+  customerId: number;
+  senderType: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+function FloatingChatButton({ currentPage, onNavigate }: { currentPage: Page; onNavigate: (p: Page) => void }) {
+  const { data: messages } = useQuery<ChatMessage[]>({
+    queryKey: ["/api/customer/chat"],
+    refetchInterval: 3000,
+  });
+
+  const hasUnread = messages?.some(m => m.senderType === "admin" && !m.isRead) || false;
+
+  if (currentPage === "support") return null;
+
+  return (
+    <button
+      onClick={() => onNavigate("support")}
+      className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-lg z-50 transition-transform hover:scale-105"
+      data-testid="button-floating-chat"
+    >
+      <MessageSquare className="w-6 h-6" />
+      {hasUnread && (
+        <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white" data-testid="indicator-unread-chat" />
+      )}
+    </button>
+  );
+}
+
+function SupportView() {
+  const [newMessage, setNewMessage] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const { data: messages, isLoading } = useQuery<ChatMessage[]>({
+    queryKey: ["/api/customer/chat"],
+    refetchInterval: 3000,
+  });
+
+  const sendMutation = useMutation({
+    mutationFn: (message: string) => apiRequest("POST", "/api/customer/chat", { message }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customer/chat"] });
+      setNewMessage("");
+    },
+  });
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleSend = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = newMessage.trim();
+    if (!trimmed) return;
+    sendMutation.mutate(trimmed);
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto space-y-6">
+      <div>
+        <h2 className="text-xl font-bold flex items-center gap-2" data-testid="text-support-title">
+          <MessageSquare className="w-5 h-5" />
+          Customer Support
+        </h2>
+        <p className="text-sm text-muted-foreground mt-1" data-testid="text-support-email">
+          Email us: support@cavenwealthfinancial.com
+        </p>
+      </div>
+
+      <Card className="flex flex-col" style={{ height: "calc(100vh - 260px)" }}>
+        <CardContent className="flex-1 flex flex-col p-0 min-h-0">
+          <div className="flex-1 overflow-y-auto p-4 space-y-3" data-testid="container-chat-messages">
+            {isLoading ? (
+              <div className="text-center text-muted-foreground py-8">Loading messages...</div>
+            ) : !messages?.length ? (
+              <div className="text-center text-muted-foreground py-8">
+                No messages yet. Start a conversation with our support team.
+              </div>
+            ) : (
+              messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`flex ${msg.senderType === "customer" ? "justify-end" : "justify-start"}`}
+                  data-testid={`chat-message-${msg.id}`}
+                >
+                  <div
+                    className={`max-w-[75%] rounded-lg px-4 py-2.5 ${
+                      msg.senderType === "customer"
+                        ? "bg-blue-600 text-white"
+                        : "bg-slate-200 dark:bg-slate-700 text-foreground"
+                    }`}
+                  >
+                    <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
+                    <p className={`text-[10px] mt-1 ${msg.senderType === "customer" ? "text-blue-200" : "text-muted-foreground"}`}>
+                      {format(new Date(msg.createdAt), "MMM d, h:mm a")}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          <div className="border-t p-3">
+            <form onSubmit={handleSend} className="flex items-center gap-2">
+              <Input
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Type your message..."
+                disabled={sendMutation.isPending}
+                data-testid="input-chat-message"
+              />
+              <Button type="submit" size="icon" disabled={sendMutation.isPending || !newMessage.trim()} data-testid="button-send-chat">
+                <Send className="w-4 h-4" />
+              </Button>
+            </form>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

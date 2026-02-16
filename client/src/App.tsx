@@ -18,6 +18,7 @@ import AdminAccessCodes from "@/pages/admin/access-codes";
 import AdminPendingTransfers from "@/pages/admin/pending-transfers";
 import AdminExternalTransfers from "@/pages/admin/external-transfers";
 import AdminAccountApplications from "@/pages/admin/account-applications";
+import AdminChat from "@/pages/admin/chat";
 import AdminLayout from "@/components/admin-layout";
 
 function Router() {
@@ -51,6 +52,9 @@ function Router() {
       </Route>
       <Route path="/admin/account-applications">
         <AdminLayout><AdminAccountApplications /></AdminLayout>
+      </Route>
+      <Route path="/admin/chat">
+        <AdminLayout><AdminChat /></AdminLayout>
       </Route>
       <Route component={NotFound} />
     </Switch>

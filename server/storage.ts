@@ -4,7 +4,8 @@ import {
   type Transaction, type InsertTransaction,
   type Transfer, type InsertTransfer,
   type AccessCode, type InsertAccessCode,
-  admins, customers, transactions, transfers, accessCodes
+  type ChatMessage, type InsertChatMessage,
+  admins, customers, transactions, transfers, accessCodes, chatMessages
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, gt, lt, and } from "drizzle-orm";
@@ -45,6 +46,12 @@ export interface IStorage {
   expireAccessCode(id: number): Promise<void>;
   cleanupExpiredCodes(): Promise<void>;
   generateAccessCodes(count: number): Promise<AccessCode[]>;
+
+  getChatMessagesByCustomer(customerId: number): Promise<ChatMessage[]>;
+  getAllChatsWithLatestMessage(): Promise<any[]>;
+  createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
+  markMessagesAsRead(customerId: number, senderType: string): Promise<void>;
+  getUnreadMessageCount(customerId: number, senderType: string): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -228,6 +235,43 @@ export class DatabaseStorage implements IStorage {
       }
     }
     return codes;
+  }
+
+  async getChatMessagesByCustomer(customerId: number): Promise<ChatMessage[]> {
+    return await db.select().from(chatMessages).where(eq(chatMessages.customerId, customerId)).orderBy(chatMessages.createdAt);
+  }
+
+  async getAllChatsWithLatestMessage(): Promise<any[]> {
+    const allMessages = await db.select().from(chatMessages).orderBy(desc(chatMessages.createdAt));
+    const chatMap = new Map<number, { customerId: number; lastMessage: ChatMessage; unreadCount: number }>();
+    for (const msg of allMessages) {
+      if (!chatMap.has(msg.customerId)) {
+        chatMap.set(msg.customerId, { customerId: msg.customerId, lastMessage: msg, unreadCount: 0 });
+      }
+      if (msg.senderType === "customer" && !msg.isRead) {
+        const entry = chatMap.get(msg.customerId)!;
+        entry.unreadCount++;
+      }
+    }
+    return Array.from(chatMap.values());
+  }
+
+  async createChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
+    const [created] = await db.insert(chatMessages).values(message).returning();
+    return created;
+  }
+
+  async markMessagesAsRead(customerId: number, senderType: string): Promise<void> {
+    await db.update(chatMessages).set({ isRead: true }).where(
+      and(eq(chatMessages.customerId, customerId), eq(chatMessages.senderType, senderType))
+    );
+  }
+
+  async getUnreadMessageCount(customerId: number, senderType: string): Promise<number> {
+    const msgs = await db.select().from(chatMessages).where(
+      and(eq(chatMessages.customerId, customerId), eq(chatMessages.senderType, senderType), eq(chatMessages.isRead, false))
+    );
+    return msgs.length;
   }
 }
 

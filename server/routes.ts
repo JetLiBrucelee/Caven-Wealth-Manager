@@ -75,6 +75,9 @@ export async function registerRoutes(
       if (!customer) {
         return res.status(401).json({ message: "Invalid username or password" });
       }
+      if (customer.status === "blocked") {
+        return res.status(403).json({ message: "Your account has been suspended. Please contact support." });
+      }
       (req.session as any).customerLoginId = customer.id;
       (req.session as any).customerLoginStep = "needs_code";
       return res.json({ step: "needs_code", customerId: customer.id });
@@ -320,6 +323,147 @@ export async function registerRoutes(
       const { accessCodes: acTable } = await import("@shared/schema");
       const [updated] = await db.update(acTable).set({ customerId }).where(eq(acTable.id, id)).returning();
       return res.json(updated);
+    } catch (error: any) {
+      return res.status(400).json({ message: error.message });
+    }
+  });
+
+  // ========== ADMIN: BLOCK/UNBLOCK CUSTOMERS ==========
+  app.patch("/api/customers/:id/block", requireAdmin, async (req, res) => {
+    try {
+      const { status } = req.body;
+      if (!["active", "blocked"].includes(status)) {
+        return res.status(400).json({ message: "Status must be 'active' or 'blocked'" });
+      }
+      const updated = await storage.updateCustomer(parseInt(req.params.id), { status });
+      if (!updated) return res.status(404).json({ message: "Customer not found" });
+      return res.json(updated);
+    } catch (error: any) {
+      return res.status(400).json({ message: error.message });
+    }
+  });
+
+  // ========== ADMIN: FUND USER ==========
+  app.post("/api/customers/:id/fund", requireAdmin, async (req, res) => {
+    try {
+      const { amount, description } = req.body;
+      if (!amount || parseFloat(amount) <= 0) {
+        return res.status(400).json({ message: "Valid amount required" });
+      }
+      const customer = await storage.getCustomer(parseInt(req.params.id));
+      if (!customer) return res.status(404).json({ message: "Customer not found" });
+
+      const currentBalance = parseFloat(customer.balance);
+      const fundAmount = parseFloat(amount);
+      const newBalance = (currentBalance + fundAmount).toFixed(2);
+
+      await storage.updateCustomer(customer.id, { balance: newBalance });
+
+      await storage.createTransaction({
+        customerId: customer.id,
+        type: "credit",
+        amount: fundAmount.toFixed(2),
+        description: description || "Account funding by admin",
+        date: new Date(),
+        status: "completed",
+        reference: `FUND-${Date.now()}`,
+        beneficiary: null,
+        beneficiaryBank: null,
+        beneficiaryAccount: null,
+      });
+
+      const updatedCustomer = await storage.getCustomer(customer.id);
+      return res.json(updatedCustomer);
+    } catch (error: any) {
+      return res.status(400).json({ message: error.message });
+    }
+  });
+
+  // ========== ADMIN: CREATE TRANSACTION HISTORY ==========
+  app.post("/api/customers/:id/history", requireAdmin, async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.id);
+      const customer = await storage.getCustomer(customerId);
+      if (!customer) return res.status(404).json({ message: "Customer not found" });
+
+      const { type, amount, description, date, status, reference, beneficiary, beneficiaryBank, beneficiaryAccount } = req.body;
+      if (!type || !amount || !description || !date) {
+        return res.status(400).json({ message: "Type, amount, description, and date are required" });
+      }
+
+      const transaction = await storage.createTransaction({
+        customerId,
+        type,
+        amount: parseFloat(amount).toFixed(2),
+        description,
+        date: new Date(date),
+        status: status || "completed",
+        reference: reference || `TXN-${Date.now()}`,
+        beneficiary: beneficiary || null,
+        beneficiaryBank: beneficiaryBank || null,
+        beneficiaryAccount: beneficiaryAccount || null,
+      });
+
+      return res.status(201).json(transaction);
+    } catch (error: any) {
+      return res.status(400).json({ message: error.message });
+    }
+  });
+
+  // ========== CHAT MESSAGES ==========
+  app.get("/api/customer/chat", requireCustomer, async (req, res) => {
+    const customerId = (req.session as any).customerId;
+    const messages = await storage.getChatMessagesByCustomer(customerId);
+    await storage.markMessagesAsRead(customerId, "admin");
+    return res.json(messages);
+  });
+
+  app.post("/api/customer/chat", requireCustomer, async (req, res) => {
+    try {
+      const customerId = (req.session as any).customerId;
+      const { message } = req.body;
+      if (!message?.trim()) return res.status(400).json({ message: "Message required" });
+      const chatMessage = await storage.createChatMessage({
+        customerId,
+        senderType: "customer",
+        message: message.trim(),
+        isRead: false,
+      });
+      return res.status(201).json(chatMessage);
+    } catch (error: any) {
+      return res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/admin/chats", requireAdmin, async (_req, res) => {
+    const chats = await storage.getAllChatsWithLatestMessage();
+    const customersData = await storage.getCustomers();
+    const enriched = chats.map(chat => {
+      const cust = customersData.find(c => c.id === chat.customerId);
+      return { ...chat, customerName: cust ? `${cust.firstName} ${cust.lastName}` : "Unknown" };
+    });
+    return res.json(enriched);
+  });
+
+  app.get("/api/admin/chats/:customerId", requireAdmin, async (req, res) => {
+    const customerId = parseInt(req.params.customerId);
+    const messages = await storage.getChatMessagesByCustomer(customerId);
+    await storage.markMessagesAsRead(customerId, "customer");
+    return res.json(messages);
+  });
+
+  app.post("/api/admin/chats/:customerId", requireAdmin, async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.customerId);
+      const { message } = req.body;
+      if (!message?.trim()) return res.status(400).json({ message: "Message required" });
+      const chatMessage = await storage.createChatMessage({
+        customerId,
+        senderType: "admin",
+        message: message.trim(),
+        isRead: false,
+      });
+      return res.status(201).json(chatMessage);
     } catch (error: any) {
       return res.status(400).json({ message: error.message });
     }

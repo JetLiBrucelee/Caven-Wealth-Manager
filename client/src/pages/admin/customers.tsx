@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Pencil, Trash2, Users, CheckCircle2, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, CheckCircle2, Loader2, ShieldBan, ShieldCheck, DollarSign, History } from "lucide-react";
 import type { Customer } from "@shared/schema";
 
 const COUNTRIES = [
@@ -80,9 +80,26 @@ export default function AdminCustomers() {
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [fundDialogOpen, setFundDialogOpen] = useState(false);
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(null);
+  const [fundingCustomer, setFundingCustomer] = useState<Customer | null>(null);
+  const [historyCustomer, setHistoryCustomer] = useState<Customer | null>(null);
   const [formData, setFormData] = useState<CustomerFormData>(emptyForm);
+  const [fundAmount, setFundAmount] = useState("");
+  const [fundDescription, setFundDescription] = useState("");
+  const [historyForm, setHistoryForm] = useState({
+    type: "credit",
+    amount: "",
+    description: "",
+    date: "",
+    status: "completed",
+    reference: "",
+    beneficiary: "",
+    beneficiaryBank: "",
+    beneficiaryAccount: "",
+  });
   const [zipLookupStatus, setZipLookupStatus] = useState<"idle" | "loading" | "found" | "not_found">("idle");
   const zipLookupTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -127,6 +144,60 @@ export default function AdminCustomers() {
     },
     onError: (error: any) => {
       toast({ title: "Failed to delete customer", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const blockMutation = useMutation({
+    mutationFn: (data: { id: number; status: string }) =>
+      apiRequest("PATCH", `/api/customers/${data.id}/block`, { status: data.status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      toast({ title: "Customer status updated successfully" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Failed to update customer status", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const fundMutation = useMutation({
+    mutationFn: (data: { id: number; amount: number; description: string }) =>
+      apiRequest("POST", `/api/customers/${data.id}/fund`, { amount: data.amount, description: data.description }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      toast({ title: "Account funded successfully" });
+      setFundDialogOpen(false);
+      setFundingCustomer(null);
+      setFundAmount("");
+      setFundDescription("");
+    },
+    onError: (error: any) => {
+      toast({ title: "Failed to fund account", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const historyMutation = useMutation({
+    mutationFn: (data: { id: number; values: Record<string, string> }) =>
+      apiRequest("POST", `/api/customers/${data.id}/history`, data.values),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/transactions"] });
+      toast({ title: "Transaction history created successfully" });
+      setHistoryDialogOpen(false);
+      setHistoryCustomer(null);
+      setHistoryForm({
+        type: "credit",
+        amount: "",
+        description: "",
+        date: "",
+        status: "completed",
+        reference: "",
+        beneficiary: "",
+        beneficiaryBank: "",
+        beneficiaryAccount: "",
+      });
+    },
+    onError: (error: any) => {
+      toast({ title: "Failed to create transaction", description: error.message, variant: "destructive" });
     },
   });
 
@@ -276,7 +347,7 @@ export default function AdminCustomers() {
                       ${parseFloat(customer.balance).toLocaleString("en-US", { minimumFractionDigits: 2 })}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={customer.status === "active" ? "default" : "secondary"} className="capitalize">
+                      <Badge variant={customer.status === "active" ? "default" : customer.status === "blocked" ? "destructive" : "secondary"} className="capitalize">
                         {customer.status}
                       </Badge>
                     </TableCell>
@@ -300,6 +371,56 @@ export default function AdminCustomers() {
                           data-testid={`button-delete-customer-${customer.id}`}
                         >
                           <Trash2 className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => blockMutation.mutate({
+                            id: customer.id,
+                            status: customer.status === "blocked" ? "active" : "blocked",
+                          })}
+                          data-testid={`button-block-customer-${customer.id}`}
+                        >
+                          {customer.status === "blocked" ? (
+                            <ShieldCheck className="w-4 h-4" />
+                          ) : (
+                            <ShieldBan className="w-4 h-4" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setFundingCustomer(customer);
+                            setFundAmount("");
+                            setFundDescription("");
+                            setFundDialogOpen(true);
+                          }}
+                          data-testid={`button-fund-customer-${customer.id}`}
+                        >
+                          <DollarSign className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setHistoryCustomer(customer);
+                            setHistoryForm({
+                              type: "credit",
+                              amount: "",
+                              description: "",
+                              date: "",
+                              status: "completed",
+                              reference: "",
+                              beneficiary: "",
+                              beneficiaryBank: "",
+                              beneficiaryAccount: "",
+                            });
+                            setHistoryDialogOpen(true);
+                          }}
+                          data-testid={`button-history-customer-${customer.id}`}
+                        >
+                          <History className="w-4 h-4" />
                         </Button>
                       </div>
                     </TableCell>
@@ -628,6 +749,187 @@ export default function AdminCustomers() {
               {deleteMutation.isPending ? "Deleting..." : "Delete"}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={fundDialogOpen} onOpenChange={(open) => { setFundDialogOpen(open); if (!open) { setFundingCustomer(null); setFundAmount(""); setFundDescription(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle data-testid="text-fund-dialog-title">Fund Account</DialogTitle>
+          </DialogHeader>
+          {fundingCustomer && (
+            <div className="space-y-1 mb-4">
+              <p className="text-sm font-medium" data-testid="text-fund-customer-name">{fundingCustomer.firstName} {fundingCustomer.lastName}</p>
+              <p className="text-sm text-muted-foreground" data-testid="text-fund-customer-balance">
+                Current Balance: ${parseFloat(fundingCustomer.balance).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+              </p>
+            </div>
+          )}
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            if (fundingCustomer) {
+              fundMutation.mutate({
+                id: fundingCustomer.id,
+                amount: parseFloat(fundAmount),
+                description: fundDescription || "Account funding by admin",
+              });
+            }
+          }} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="fund-amount">Amount</Label>
+              <Input
+                id="fund-amount"
+                type="number"
+                step="0.01"
+                min="0.01"
+                value={fundAmount}
+                onChange={(e) => setFundAmount(e.target.value)}
+                required
+                data-testid="input-fund-amount"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fund-description">Description</Label>
+              <Input
+                id="fund-description"
+                value={fundDescription}
+                onChange={(e) => setFundDescription(e.target.value)}
+                placeholder="Account funding by admin"
+                data-testid="input-fund-description"
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={fundMutation.isPending} data-testid="button-submit-fund">
+              {fundMutation.isPending ? "Funding..." : "Fund Account"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={historyDialogOpen} onOpenChange={(open) => { setHistoryDialogOpen(open); if (!open) { setHistoryCustomer(null); } }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle data-testid="text-history-dialog-title">Create Transaction History</DialogTitle>
+          </DialogHeader>
+          {historyCustomer && (
+            <p className="text-sm text-muted-foreground mb-4" data-testid="text-history-customer-name">
+              For: {historyCustomer.firstName} {historyCustomer.lastName}
+            </p>
+          )}
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            if (historyCustomer) {
+              historyMutation.mutate({
+                id: historyCustomer.id,
+                values: historyForm,
+              });
+            }
+          }} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Type</Label>
+              <Select value={historyForm.type} onValueChange={(value) => setHistoryForm({ ...historyForm, type: value })}>
+                <SelectTrigger data-testid="select-history-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="credit">Credit</SelectItem>
+                  <SelectItem value="debit">Debit</SelectItem>
+                  <SelectItem value="deposit">Deposit</SelectItem>
+                  <SelectItem value="withdrawal">Withdrawal</SelectItem>
+                  <SelectItem value="wire_transfer">Wire Transfer</SelectItem>
+                  <SelectItem value="external_transfer">External Transfer</SelectItem>
+                  <SelectItem value="internal_transfer">Internal Transfer</SelectItem>
+                  <SelectItem value="bill_pay">Bill Pay</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="history-amount">Amount</Label>
+              <Input
+                id="history-amount"
+                type="number"
+                step="0.01"
+                min="0.01"
+                value={historyForm.amount}
+                onChange={(e) => setHistoryForm({ ...historyForm, amount: e.target.value })}
+                required
+                data-testid="input-history-amount"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="history-description">Description</Label>
+              <Input
+                id="history-description"
+                value={historyForm.description}
+                onChange={(e) => setHistoryForm({ ...historyForm, description: e.target.value })}
+                required
+                data-testid="input-history-description"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="history-date">Date</Label>
+              <Input
+                id="history-date"
+                type="datetime-local"
+                value={historyForm.date}
+                onChange={(e) => setHistoryForm({ ...historyForm, date: e.target.value })}
+                required
+                data-testid="input-history-date"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={historyForm.status} onValueChange={(value) => setHistoryForm({ ...historyForm, status: value })}>
+                <SelectTrigger data-testid="select-history-status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="failed">Failed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="history-reference">Reference</Label>
+              <Input
+                id="history-reference"
+                value={historyForm.reference}
+                onChange={(e) => setHistoryForm({ ...historyForm, reference: e.target.value })}
+                placeholder="Auto-generates if empty"
+                data-testid="input-history-reference"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="history-beneficiary">Beneficiary</Label>
+              <Input
+                id="history-beneficiary"
+                value={historyForm.beneficiary}
+                onChange={(e) => setHistoryForm({ ...historyForm, beneficiary: e.target.value })}
+                data-testid="input-history-beneficiary"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="history-beneficiary-bank">Beneficiary Bank</Label>
+              <Input
+                id="history-beneficiary-bank"
+                value={historyForm.beneficiaryBank}
+                onChange={(e) => setHistoryForm({ ...historyForm, beneficiaryBank: e.target.value })}
+                data-testid="input-history-beneficiary-bank"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="history-beneficiary-account">Beneficiary Account</Label>
+              <Input
+                id="history-beneficiary-account"
+                value={historyForm.beneficiaryAccount}
+                onChange={(e) => setHistoryForm({ ...historyForm, beneficiaryAccount: e.target.value })}
+                data-testid="input-history-beneficiary-account"
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={historyMutation.isPending} data-testid="button-submit-history">
+              {historyMutation.isPending ? "Creating..." : "Create Transaction"}
+            </Button>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
