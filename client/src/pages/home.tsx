@@ -36,7 +36,7 @@ const operations = [
   },
   {
     num: "02",
-    title: "Caven Financial Wealth",
+    title: "Caven Wealth Financial",
     desc: "Expert wealth management services designed to help you grow and protect your financial portfolio.",
   },
   {
@@ -60,7 +60,7 @@ export default function Home() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-36">
           <div className="max-w-3xl">
             <h1
-              className="text-4xl md:text-6xl font-bold text-white leading-tight"
+              className="text-4xl md:text-6xl font-bold text-white leading-tight drop-shadow-lg"
               data-testid="text-hero-headline"
             >
               One Platform. One Partner.
@@ -75,7 +75,7 @@ export default function Home() {
               <Link href="/operations">
                 <Button
                   size="lg"
-                  className="bg-white text-blue-900 border-white"
+                  className="bg-white text-blue-900 border-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-0.5"
                   data-testid="button-hero-learn-more"
                 >
                   Learn More
@@ -86,7 +86,7 @@ export default function Home() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="text-white border-white/40 backdrop-blur-sm bg-white/10"
+                  className="text-white border-white/40 backdrop-blur-sm bg-white/10 shadow-xl hover:bg-white/20 transition-all duration-300"
                   data-testid="button-hero-contact"
                 >
                   Contact Us
@@ -97,16 +97,30 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="relative bg-slate-100 dark:bg-gray-900 py-4 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <img
+            src="/images/partner-header.png"
+            alt="Trusted Partners"
+            className="w-full max-w-4xl mx-auto object-contain"
+            data-testid="img-partner-header"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+          />
+        </div>
+      </section>
+
       <section className="bg-white dark:bg-gray-900 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {stats.map((stat, i) => (
               <div
                 key={i}
-                className="text-center"
+                className="text-center p-6 rounded-xl bg-gradient-to-br from-white to-slate-50 dark:from-gray-800 dark:to-gray-900 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100 dark:border-gray-800"
                 data-testid={`stat-card-${i}`}
               >
-                <stat.icon className="h-8 w-8 text-blue-500 mx-auto mb-3" />
+                <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-blue-50 dark:bg-blue-900/30 mb-4 shadow-inner">
+                  <stat.icon className="h-7 w-7 text-blue-500" />
+                </div>
                 <p className="text-3xl font-bold text-foreground">{stat.value}</p>
                 <p className="mt-1 text-sm text-muted-foreground">{stat.label}</p>
               </div>
@@ -126,55 +140,68 @@ export default function Home() {
                 Built to Help You Succeed
               </h2>
               <p className="mt-4 text-muted-foreground text-lg">
-                Caven Financial Wealth helps you generate revenue, automate processes,
+                Caven Wealth Financial helps you generate revenue, automate processes,
                 and provide great service.
               </p>
               <ul className="mt-8 space-y-4">
                 {features.map((feat, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <div className="mt-0.5 rounded-md bg-blue-50 dark:bg-blue-900/30 p-2">
+                  <li key={i} className="flex items-start gap-3 group">
+                    <div className="mt-0.5 rounded-lg bg-blue-50 dark:bg-blue-900/30 p-2.5 shadow-sm group-hover:shadow-md transition-shadow">
                       <feat.icon className="h-5 w-5 text-blue-500" />
                     </div>
-                    <span className="text-foreground">{feat.text}</span>
+                    <span className="text-foreground pt-1">{feat.text}</span>
                   </li>
                 ))}
               </ul>
             </div>
-            <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-md p-8 text-white">
-              <h3 className="text-2xl font-bold">Why Choose Us</h3>
-              <p className="mt-4 text-blue-100">
-                With nearly five decades of experience, we combine cutting-edge technology 
-                with personalized service to deliver results that matter. Our platform is 
-                designed for speed, security, and scalability.
-              </p>
-              <Link href="/company">
-                <Button
-                  variant="outline"
-                  className="mt-6 text-white border-white/40 backdrop-blur-sm bg-white/10"
-                  data-testid="button-why-choose-us"
-                >
-                  About Our Company
-                </Button>
-              </Link>
+            <div className="relative">
+              <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl p-8 text-white shadow-2xl transform hover:scale-[1.02] transition-all duration-300">
+                <h3 className="text-2xl font-bold">Why Choose Us</h3>
+                <p className="mt-4 text-blue-100">
+                  With nearly five decades of experience, we combine cutting-edge technology
+                  with personalized service to deliver results that matter. Our platform is
+                  designed for speed, security, and scalability.
+                </p>
+                <Link href="/company">
+                  <Button
+                    variant="outline"
+                    className="mt-6 text-white border-white/40 backdrop-blur-sm bg-white/10 hover:bg-white/20 transition-all"
+                    data-testid="button-why-choose-us"
+                  >
+                    About Our Company
+                  </Button>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="py-16 bg-gray-50 dark:bg-gray-900/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="relative py-20 overflow-hidden">
+        <img
+          src="/images/kc-skyline.png"
+          alt="City Skyline"
+          className="absolute inset-0 w-full h-full object-cover opacity-20"
+          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/90 to-slate-800/90" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2
-            className="text-3xl font-bold text-foreground text-center"
+            className="text-3xl font-bold text-white text-center"
             data-testid="text-operations-heading"
           >
             Our Operations
           </h2>
-          <p className="mt-3 text-muted-foreground text-center max-w-2xl mx-auto">
+          <p className="mt-3 text-gray-300 text-center max-w-2xl mx-auto">
             Comprehensive solutions designed to power every aspect of your financial operations.
           </p>
           <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {operations.map((op) => (
-              <Card key={op.num} className="overflow-visible" data-testid={`card-operation-${op.num}`}>
+              <Card
+                key={op.num}
+                className="overflow-visible bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border-0"
+                data-testid={`card-operation-${op.num}`}
+              >
                 <CardContent className="p-6">
                   <span className="text-4xl font-bold text-blue-500/20">{op.num}</span>
                   <h3 className="mt-2 text-lg font-semibold text-foreground">{op.title}</h3>
@@ -185,7 +212,7 @@ export default function Home() {
           </div>
           <div className="mt-8 text-center">
             <Link href="/operations">
-              <Button variant="outline" data-testid="button-view-operations">
+              <Button variant="outline" className="text-white border-white/40 bg-white/10 hover:bg-white/20" data-testid="button-view-operations">
                 View All Operations
                 <ArrowRight className="ml-1 h-4 w-4" />
               </Button>
@@ -200,12 +227,12 @@ export default function Home() {
             Our Company
           </h2>
           <p className="mt-4 text-muted-foreground max-w-3xl mx-auto text-lg">
-            Caven Financial Wealth is a privately held company committed to innovation, 
-            integrity, and the highest standards of service. We partner with agencies of 
+            Caven Wealth Financial is a privately held company committed to innovation,
+            integrity, and the highest standards of service. We partner with agencies of
             all sizes to deliver scalable financing solutions.
           </p>
           <Link href="/company">
-            <Button className="mt-6" data-testid="button-learn-about-company">
+            <Button className="mt-6 shadow-lg hover:shadow-xl transition-all duration-300" data-testid="button-learn-about-company">
               Learn More About Us
             </Button>
           </Link>
@@ -226,7 +253,7 @@ export default function Home() {
           <Link href="/contact">
             <Button
               size="lg"
-              className="mt-6 bg-white text-blue-700 border-white"
+              className="mt-6 bg-white text-blue-700 border-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-0.5"
               data-testid="button-cta-contact"
             >
               Contact Us
@@ -235,12 +262,32 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="py-12 bg-background">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-muted-foreground" data-testid="text-bottom-statement">
-            Over the past 47 years, Caven Financial Wealth has grown into one of the 
-            largest providers of premium financing in the United States and Puerto Rico.
-          </p>
+      <section className="py-12 bg-slate-50 dark:bg-gray-900/50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-6">
+            <p className="text-muted-foreground" data-testid="text-bottom-statement">
+              Over the past 47 years, Caven Wealth Financial has grown into one of the
+              largest providers of premium financing in the United States and Puerto Rico.
+            </p>
+          </div>
+          <div className="flex items-center justify-center gap-4 flex-wrap">
+            <a href="#" className="transition-transform hover:scale-105">
+              <img
+                src="/images/google-play-badge.png"
+                alt="Get it on Google Play"
+                className="h-12 w-auto rounded-lg shadow-md"
+                data-testid="img-google-play"
+              />
+            </a>
+            <a href="#" className="transition-transform hover:scale-105">
+              <img
+                src="/images/app-store-badge.png"
+                alt="Download on the App Store"
+                className="h-12 w-auto rounded-lg shadow-md"
+                data-testid="img-app-store"
+              />
+            </a>
+          </div>
         </div>
       </section>
     </PublicLayout>

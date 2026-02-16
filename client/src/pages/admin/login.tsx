@@ -53,7 +53,7 @@ export default function AdminLogin() {
             <Lock className="w-6 h-6 text-green-600 dark:text-green-400" />
           </div>
           <CardTitle className="text-2xl font-bold italic text-green-700 dark:text-green-400" data-testid="text-brand">
-            Caven Financial Wealth
+            Caven Wealth Financial
           </CardTitle>
           <p className="text-muted-foreground text-sm" data-testid="text-subtitle">Admin Portal</p>
         </CardHeader>

@@ -143,7 +143,7 @@ export default function Portal() {
               </div>
             </div>
             <CardTitle className="text-2xl font-bold">
-              Caven Financial Wealth
+              Caven Wealth Financial
             </CardTitle>
             <div className="space-y-2">
               <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
@@ -201,7 +201,7 @@ export default function Portal() {
           </Button>
           <div>
             <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-              Caven Financial Wealth
+              Caven Wealth Financial
             </h1>
             <p className="text-slate-600 dark:text-slate-400">Customer Portal</p>
           </div>

@@ -79,7 +79,7 @@ export default function Company() {
                 </h2>
               </div>
               <p className="text-muted-foreground text-lg">
-                Founded in 1977, Caven Financial Wealth began with a simple mission: to make 
+                Founded in 1977, Caven Wealth Financial began with a simple mission: to make 
                 premium financing accessible, efficient, and fair. Over the decades, we have 
                 grown from a regional provider into one of the largest and most trusted names in 
                 premium financing in the United States and Puerto Rico.

@@ -51,7 +51,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             className="text-xl font-bold italic text-green-700 dark:text-green-400"
             data-testid="text-sidebar-brand"
           >
-            Caven Financial Wealth
+            Caven Wealth Financial
           </h1>
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">

@@ -192,10 +192,10 @@ function requireAdmin(req: any, res: any, next: any) {
 
 async function seedAdmin() {
   try {
-    const existing = await storage.getAdminByUsername("admin");
+    const existing = await storage.getAdminByUsername("admin@cavenwealthfinancial.com");
     if (!existing) {
-      await storage.createAdmin({ username: "admin", password: "admin123" });
-      console.log("Default admin created: admin / admin123");
+      await storage.createAdmin({ username: "admin@cavenwealthfinancial.com", password: "Adminproject2026!" });
+      console.log("Default admin created");
     }
   } catch (error) {
     console.log("Admin seeding will be attempted after DB push");

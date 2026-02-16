@@ -11,17 +11,17 @@ const contactInfo = [
   {
     icon: MapPin,
     title: "Address",
-    lines: ["1000 Corporate Drive, Suite 500", "Fort Lauderdale, FL 33334"],
+    lines: ["New York, USA 10001"],
   },
   {
     icon: Phone,
     title: "Phone",
-    lines: ["(800) 555-0199", "(954) 555-0123"],
+    lines: ["(254) 421-9855"],
   },
   {
     icon: Mail,
     title: "Email",
-    lines: ["info@cavenfinancial.com", "support@cavenfinancial.com"],
+    lines: ["support@cavenwealthfinancial.com"],
   },
   {
     icon: Clock,
