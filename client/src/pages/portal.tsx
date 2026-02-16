@@ -1,9 +1,5 @@
 import { useState } from "react";
-import { Shield, LogOut, Eye, EyeOff } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Shield, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import CustomerDashboard from "@/components/customer-dashboard";
@@ -100,128 +96,120 @@ export default function Portal() {
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden flex items-center justify-center">
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-800" />
-      <div className="absolute inset-0 opacity-20" style={{
-        backgroundImage: `radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%),
-                          radial-gradient(circle at 80% 20%, rgba(255,255,255,0.08) 0%, transparent 40%),
-                          radial-gradient(circle at 50% 80%, rgba(255,255,255,0.05) 0%, transparent 60%)`
-      }} />
-
-      <div className="relative z-10 w-full max-w-md mx-4">
-        <Card className="shadow-2xl border-0 bg-white rounded-2xl overflow-hidden">
-          <CardHeader className="text-center space-y-4 pb-2 pt-8">
-            <div className="flex justify-center">
-              <div className="bg-blue-50 p-4 rounded-2xl">
-                <Shield className="w-10 h-10 text-blue-500" />
+    <div className="min-h-screen flex items-center justify-center" style={{
+      background: "linear-gradient(135deg, #3b5cb8 0%, #4a69c9 25%, #3b5cb8 50%, #2d4a9e 75%, #3b5cb8 100%)"
+    }}>
+      <div className="w-full max-w-[440px] mx-4">
+        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+          {step === "login" ? (
+            <div className="px-10 py-10">
+              <div className="flex flex-col items-center mb-8">
+                <div className="bg-blue-50 p-3.5 rounded-xl mb-5">
+                  <Shield className="w-8 h-8 text-blue-500 stroke-[1.5]" />
+                </div>
+                <h1 className="text-[22px] font-bold text-gray-900 tracking-tight" data-testid="text-portal-title">
+                  Caven Wealth Financial
+                </h1>
+                <p className="text-sm text-gray-400 mt-1">
+                  Sign in to your account
+                </p>
               </div>
-            </div>
-            <div>
-              <CardTitle className="text-2xl font-bold text-gray-900" data-testid="text-portal-title">
-                Caven Wealth Financial
-              </CardTitle>
-              <p className="text-sm text-gray-500 mt-1.5">
-                {step === "login" ? "Sign in to your account" : "Enter your access code"}
-              </p>
-            </div>
-          </CardHeader>
-          <CardContent className="px-8 pb-8 pt-4">
-            {step === "login" ? (
+
               <form onSubmit={handleLogin} className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="username" className="text-sm font-medium text-gray-700">Username</Label>
-                  <Input
-                    id="username"
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-gray-900">Username</label>
+                  <input
                     type="text"
                     placeholder="Enter your username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     data-testid="input-username"
                     autoComplete="username"
-                    className="h-12 border-gray-200 bg-gray-50 focus:bg-white transition-colors rounded-xl"
+                    className="w-full h-[46px] px-4 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-sm font-medium text-gray-700">Password</Label>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-gray-900">Password</label>
                   <div className="relative">
-                    <Input
-                      id="password"
+                    <input
                       type={showPassword ? "text" : "password"}
                       placeholder="Enter your password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       data-testid="input-password"
                       autoComplete="current-password"
-                      className="h-12 border-gray-200 bg-gray-50 focus:bg-white transition-colors rounded-xl pr-12"
+                      className="w-full h-[46px] px-4 pr-12 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
                       data-testid="button-toggle-password"
                     >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
-                <Button
+                <button
                   type="submit"
-                  className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-200"
                   disabled={loading}
+                  className="w-full h-[46px] bg-[#4a69c9] hover:bg-[#3b5cb8] text-white font-semibold text-sm rounded-lg transition-colors disabled:opacity-60"
                   data-testid="button-login-submit"
                 >
                   {loading ? "Signing in..." : "Sign In"}
-                </Button>
+                </button>
               </form>
-            ) : (
+            </div>
+          ) : (
+            <div className="px-10 py-10">
+              <div className="flex flex-col items-center mb-8">
+                <div className="bg-blue-50 p-3.5 rounded-xl mb-5">
+                  <Shield className="w-8 h-8 text-blue-500 stroke-[1.5]" />
+                </div>
+                <h1 className="text-[22px] font-bold text-gray-900 tracking-tight" data-testid="text-portal-title">
+                  Caven Wealth Financial
+                </h1>
+                <p className="text-sm text-gray-400 mt-1">
+                  Enter your access code
+                </p>
+              </div>
+
               <form onSubmit={handleVerifyCode} className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="accessCode" className="text-sm font-medium text-gray-700">6-Digit Access Code</Label>
-                  <Input
-                    id="accessCode"
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-gray-900">6-Digit Access Code</label>
+                  <input
                     type="text"
                     placeholder="000000"
                     maxLength={6}
                     value={code}
                     onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, ""))}
                     data-testid="input-access-code"
-                    className="text-center text-2xl font-bold tracking-widest h-14 border-gray-200 bg-gray-50 focus:bg-white transition-colors rounded-xl"
+                    className="w-full h-[52px] px-4 bg-gray-50 border border-gray-200 rounded-lg text-center text-2xl font-bold tracking-[0.3em] text-gray-900 placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
-                  <p className="text-xs text-gray-400 text-center">
+                  <p className="text-xs text-gray-400 text-center mt-2">
                     Contact your account manager for your access code
                   </p>
                 </div>
-                <Button
+                <button
                   type="submit"
-                  className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-200"
                   disabled={loading}
+                  className="w-full h-[46px] bg-[#4a69c9] hover:bg-[#3b5cb8] text-white font-semibold text-sm rounded-lg transition-colors disabled:opacity-60"
                   data-testid="button-verify-code"
                 >
                   {loading ? "Verifying..." : "Verify & Access Account"}
-                </Button>
-                <Button
+                </button>
+                <button
                   type="button"
-                  variant="ghost"
-                  className="w-full text-gray-500 hover:text-gray-700"
                   onClick={() => { setStep("login"); setCode(""); }}
+                  className="w-full text-sm text-gray-400 hover:text-gray-600 py-2 transition-colors"
                   data-testid="button-back-to-login"
                 >
                   Back to Sign In
-                </Button>
+                </button>
               </form>
-            )}
-
-            <div className="mt-6 pt-5 border-t border-gray-100 text-center">
-              <p className="text-xs text-gray-400">
-                Need help? Contact <a href="mailto:support@cavenwealthfinancial.com" className="text-blue-500 hover:text-blue-600">support@cavenwealthfinancial.com</a>
-              </p>
             </div>
-          </CardContent>
-        </Card>
-
-        <p className="text-center text-xs text-white/60 mt-6">
-          &copy; {new Date().getFullYear()} Caven Wealth Financial. All rights reserved.
-        </p>
+          )}
+        </div>
       </div>
     </div>
   );

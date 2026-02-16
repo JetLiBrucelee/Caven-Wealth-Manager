@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -12,8 +12,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Pencil, Trash2, Users } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, CheckCircle2, Loader2 } from "lucide-react";
 import type { Customer } from "@shared/schema";
+
+const COUNTRIES = [
+  "United States", "United Kingdom", "Canada", "Australia", "Germany", "France", "Italy", "Spain",
+  "Netherlands", "Belgium", "Switzerland", "Austria", "Sweden", "Norway", "Denmark", "Finland",
+  "Ireland", "Portugal", "Greece", "Poland", "Czech Republic", "Romania", "Hungary", "Bulgaria",
+  "Croatia", "Slovakia", "Slovenia", "Lithuania", "Latvia", "Estonia", "Luxembourg", "Malta",
+  "Cyprus", "Iceland", "Japan", "South Korea", "China", "India", "Brazil", "Mexico", "Argentina",
+  "Colombia", "Chile", "Peru", "Venezuela", "Ecuador", "Bolivia", "Paraguay", "Uruguay",
+  "Costa Rica", "Panama", "Guatemala", "Honduras", "El Salvador", "Nicaragua", "Cuba",
+  "Dominican Republic", "Puerto Rico", "Jamaica", "Trinidad and Tobago", "Bahamas", "Barbados",
+  "South Africa", "Nigeria", "Kenya", "Ghana", "Tanzania", "Ethiopia", "Egypt", "Morocco",
+  "Tunisia", "Algeria", "Senegal", "Cameroon", "Ivory Coast", "Uganda", "Mozambique", "Zimbabwe",
+  "Saudi Arabia", "United Arab Emirates", "Qatar", "Kuwait", "Bahrain", "Oman", "Jordan", "Lebanon",
+  "Israel", "Turkey", "Iraq", "Iran", "Pakistan", "Bangladesh", "Sri Lanka", "Nepal",
+  "Thailand", "Vietnam", "Philippines", "Malaysia", "Singapore", "Indonesia", "Myanmar",
+  "Cambodia", "Taiwan", "Hong Kong", "New Zealand", "Fiji", "Papua New Guinea",
+  "Russia", "Ukraine", "Belarus", "Georgia", "Armenia", "Azerbaijan", "Kazakhstan",
+  "Uzbekistan", "Mongolia",
+].sort();
 
 interface CustomerFormData {
   firstName: string;
@@ -64,6 +83,8 @@ export default function AdminCustomers() {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(null);
   const [formData, setFormData] = useState<CustomerFormData>(emptyForm);
+  const [zipLookupStatus, setZipLookupStatus] = useState<"idle" | "loading" | "found" | "not_found">("idle");
+  const zipLookupTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { data: customers, isLoading } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
@@ -109,9 +130,51 @@ export default function AdminCustomers() {
     },
   });
 
+  const lookupZipCode = useCallback(async (zip: string) => {
+    if (zip.length < 5) {
+      setZipLookupStatus("idle");
+      return;
+    }
+    setZipLookupStatus("loading");
+    try {
+      const response = await fetch(`/api/zipcode-lookup/${zip}`);
+      if (response.ok) {
+        const data = await response.json();
+        setFormData(prev => ({
+          ...prev,
+          city: data.city || prev.city,
+          state: data.state || prev.state,
+        }));
+        setZipLookupStatus("found");
+      } else {
+        setZipLookupStatus("not_found");
+      }
+    } catch {
+      setZipLookupStatus("not_found");
+    }
+  }, []);
+
+  const handleZipCodeChange = useCallback((value: string) => {
+    const cleaned = value.replace(/[^0-9-]/g, "");
+    setFormData(prev => ({ ...prev, zipCode: cleaned }));
+
+    if (zipLookupTimer.current) {
+      clearTimeout(zipLookupTimer.current);
+    }
+
+    if (cleaned.length >= 5 && formData.country === "United States") {
+      zipLookupTimer.current = setTimeout(() => {
+        lookupZipCode(cleaned);
+      }, 400);
+    } else {
+      setZipLookupStatus("idle");
+    }
+  }, [lookupZipCode, formData.country]);
+
   function resetForm() {
     setFormData(emptyForm);
     setEditingCustomer(null);
+    setZipLookupStatus("idle");
   }
 
   function openAddDialog() {
@@ -371,13 +434,66 @@ export default function AdminCustomers() {
               <h4 className="text-sm font-medium text-muted-foreground mb-3">Address</h4>
               <div className="space-y-4">
                 <div className="space-y-2">
+                  <Label>Country</Label>
+                  <Select
+                    value={formData.country}
+                    onValueChange={(value) => {
+                      setFormData({ ...formData, country: value, city: "", state: "", zipCode: "" });
+                      setZipLookupStatus("idle");
+                    }}
+                  >
+                    <SelectTrigger data-testid="select-country">
+                      <SelectValue placeholder="Select country" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {COUNTRIES.map((country) => (
+                        <SelectItem key={country} value={country}>{country}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="address">Street Address</Label>
                   <Input
                     id="address"
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    placeholder="123 Main Street, Apt 4B"
                     data-testid="input-address"
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="zipCode">
+                    Zip / Postal Code
+                    {formData.country === "United States" && (
+                      <span className="text-xs text-muted-foreground font-normal ml-2">
+                        (auto-fills city & state)
+                      </span>
+                    )}
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="zipCode"
+                      value={formData.zipCode}
+                      onChange={(e) => handleZipCodeChange(e.target.value)}
+                      placeholder={formData.country === "United States" ? "e.g. 10001" : "Enter postal code"}
+                      data-testid="input-zip-code"
+                      className={zipLookupStatus === "found" ? "border-green-400 pr-10" : zipLookupStatus === "not_found" ? "border-red-300 pr-10" : ""}
+                    />
+                    {zipLookupStatus === "loading" && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                      </div>
+                    )}
+                    {zipLookupStatus === "found" && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <CheckCircle2 className="w-4 h-4 text-green-500" />
+                      </div>
+                    )}
+                  </div>
+                  {zipLookupStatus === "not_found" && formData.zipCode.length >= 5 && (
+                    <p className="text-xs text-red-500 mt-1">Zip code not found. Please enter city and state manually.</p>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -386,36 +502,18 @@ export default function AdminCustomers() {
                       id="city"
                       value={formData.city}
                       onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      placeholder="City name"
                       data-testid="input-city"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="state">State</Label>
+                    <Label htmlFor="state">State / Province</Label>
                     <Input
                       id="state"
                       value={formData.state}
                       onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                      placeholder="State or province"
                       data-testid="input-state"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="zipCode">Zip Code</Label>
-                    <Input
-                      id="zipCode"
-                      value={formData.zipCode}
-                      onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
-                      data-testid="input-zip-code"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="country">Country</Label>
-                    <Input
-                      id="country"
-                      value={formData.country}
-                      onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                      data-testid="input-country"
                     />
                   </div>
                 </div>

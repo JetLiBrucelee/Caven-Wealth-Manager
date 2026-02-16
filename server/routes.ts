@@ -325,6 +325,32 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/zipcode-lookup/:zip", async (req, res) => {
+    try {
+      const { zip } = req.params;
+      if (!zip || zip.length < 3) {
+        return res.status(400).json({ message: "Invalid zip code" });
+      }
+      const response = await fetch(`https://api.zippopotam.us/us/${zip}`);
+      if (!response.ok) {
+        return res.status(404).json({ message: "Zip code not found" });
+      }
+      const data = await response.json() as any;
+      const place = data.places?.[0];
+      if (place) {
+        return res.json({
+          city: place["place name"],
+          state: place["state"],
+          stateAbbreviation: place["state abbreviation"],
+          country: data.country,
+        });
+      }
+      return res.status(404).json({ message: "No results found" });
+    } catch (error) {
+      return res.status(500).json({ message: "Failed to lookup zip code" });
+    }
+  });
+
   return httpServer;
 }
 
