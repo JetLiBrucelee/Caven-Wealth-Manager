@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   LayoutDashboard,
   Send,
@@ -637,32 +638,111 @@ function TransferForm({ type, customer }: { type: string; customer: CustomerData
             {type === "wire_transfer" && (
               <>
                 <div className="space-y-2">
-                  <Label>Recipient Name</Label>
-                  <Input value={formData.recipientName || ""} onChange={(e) => update("recipientName", e.target.value)} required data-testid="input-recipient-name" />
+                  <Label>Transfer Type</Label>
+                  <Select value={formData.wireType || ""} onValueChange={(val) => update("wireType", val)}>
+                    <SelectTrigger data-testid="select-wire-type">
+                      <SelectValue placeholder="Select wire transfer type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="domestic">Domestic Wire (USA)</SelectItem>
+                      <SelectItem value="international">International Wire</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Recipient Bank</Label>
-                    <Input value={formData.recipientBank || ""} onChange={(e) => update("recipientBank", e.target.value)} required data-testid="input-recipient-bank" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Recipient Account #</Label>
-                    <Input value={formData.recipientAccount || ""} onChange={(e) => update("recipientAccount", e.target.value)} required data-testid="input-recipient-account" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Routing Number</Label>
-                    <Input value={formData.recipientRoutingNumber || ""} onChange={(e) => update("recipientRoutingNumber", e.target.value)} required data-testid="input-recipient-routing" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>SWIFT Code (optional)</Label>
-                    <Input value={formData.swiftCode || ""} onChange={(e) => update("swiftCode", e.target.value)} data-testid="input-swift-code" />
-                  </div>
+
+                <Separator />
+                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Beneficiary Information</p>
+
+                <div className="space-y-2">
+                  <Label>Beneficiary Name (Full Legal Name)</Label>
+                  <Input value={formData.recipientName || ""} onChange={(e) => update("recipientName", e.target.value)} required placeholder="Enter full legal name of recipient" data-testid="input-recipient-name" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Bank Address (optional)</Label>
-                  <Input value={formData.bankAddress || ""} onChange={(e) => update("bankAddress", e.target.value)} data-testid="input-bank-address" />
+                  <Label>Beneficiary Address</Label>
+                  <Input value={formData.beneficiaryAddress || ""} onChange={(e) => update("beneficiaryAddress", e.target.value)} required placeholder="Street address, city, state, zip code" data-testid="input-beneficiary-address" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Beneficiary City</Label>
+                    <Input value={formData.beneficiaryCity || ""} onChange={(e) => update("beneficiaryCity", e.target.value)} required placeholder="City" data-testid="input-beneficiary-city" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Beneficiary Country</Label>
+                    <Input value={formData.beneficiaryCountry || ""} onChange={(e) => update("beneficiaryCountry", e.target.value)} required placeholder="Country" data-testid="input-beneficiary-country" />
+                  </div>
+                </div>
+
+                <Separator />
+                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Beneficiary Bank Details</p>
+
+                <div className="space-y-2">
+                  <Label>Beneficiary Bank Name</Label>
+                  <Input value={formData.recipientBank || ""} onChange={(e) => update("recipientBank", e.target.value)} required placeholder="Name of receiving bank" data-testid="input-recipient-bank" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Account Number / IBAN</Label>
+                    <Input value={formData.recipientAccount || ""} onChange={(e) => update("recipientAccount", e.target.value)} required placeholder="Account number or IBAN" data-testid="input-recipient-account" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Routing / ABA Number</Label>
+                    <Input value={formData.recipientRoutingNumber || ""} onChange={(e) => update("recipientRoutingNumber", e.target.value)} required placeholder="9-digit routing number" data-testid="input-recipient-routing" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>SWIFT / BIC Code</Label>
+                    <Input value={formData.swiftCode || ""} onChange={(e) => update("swiftCode", e.target.value)} placeholder="e.g. CHASUS33" data-testid="input-swift-code" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Bank Address</Label>
+                    <Input value={formData.bankAddress || ""} onChange={(e) => update("bankAddress", e.target.value)} placeholder="Bank branch address" data-testid="input-bank-address" />
+                  </div>
+                </div>
+
+                <Separator />
+                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Intermediary / Correspondent Bank (if applicable)</p>
+
+                <div className="space-y-2">
+                  <Label>Intermediary Bank Name (optional)</Label>
+                  <Input value={formData.intermediaryBank || ""} onChange={(e) => update("intermediaryBank", e.target.value)} placeholder="Intermediary or correspondent bank name" data-testid="input-intermediary-bank" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Intermediary SWIFT / BIC (optional)</Label>
+                    <Input value={formData.intermediarySwift || ""} onChange={(e) => update("intermediarySwift", e.target.value)} placeholder="SWIFT code" data-testid="input-intermediary-swift" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Intermediary Routing # (optional)</Label>
+                    <Input value={formData.intermediaryRouting || ""} onChange={(e) => update("intermediaryRouting", e.target.value)} placeholder="Routing number" data-testid="input-intermediary-routing" />
+                  </div>
+                </div>
+
+                <Separator />
+                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Additional Details</p>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Purpose of Transfer</Label>
+                    <Select value={formData.purpose || ""} onValueChange={(val) => update("purpose", val)}>
+                      <SelectTrigger data-testid="select-purpose">
+                        <SelectValue placeholder="Select purpose" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="personal">Personal / Family Support</SelectItem>
+                        <SelectItem value="business">Business Payment</SelectItem>
+                        <SelectItem value="investment">Investment</SelectItem>
+                        <SelectItem value="real_estate">Real Estate Purchase</SelectItem>
+                        <SelectItem value="education">Education / Tuition</SelectItem>
+                        <SelectItem value="medical">Medical Expenses</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Reference / Invoice # (optional)</Label>
+                    <Input value={formData.referenceNumber || ""} onChange={(e) => update("referenceNumber", e.target.value)} placeholder="Reference or invoice number" data-testid="input-reference-number" />
+                  </div>
                 </div>
               </>
             )}

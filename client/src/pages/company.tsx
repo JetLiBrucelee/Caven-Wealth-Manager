@@ -84,7 +84,7 @@ export default function Company() {
                 grown from a regional bank into one of the largest and most trusted names in 
                 banking in the United States and Puerto Rico.
               </p>
-              <p className="mt-4 text-muted-foreground">
+              <p className="mt-4 text-muted-foreground text-lg">
                 Today, we serve thousands of clients and businesses, 
                 processing billions of dollars in transactions annually through our proprietary 
                 banking platform.
