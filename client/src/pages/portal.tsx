@@ -133,7 +133,13 @@ export default function Portal() {
         toast({ description: "Credentials verified. Please enter your access code." });
       }
     } catch (error: any) {
-      toast({ description: "Invalid username or password", variant: "destructive" });
+      let msg = "Invalid username or password";
+      try {
+        const jsonStr = error.message?.replace(/^\d+:\s*/, "");
+        const parsed = JSON.parse(jsonStr);
+        if (parsed.message) msg = parsed.message;
+      } catch {}
+      toast({ description: msg, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -154,7 +160,13 @@ export default function Portal() {
         setStep("dashboard");
       }
     } catch (error: any) {
-      toast({ description: "Invalid or expired access code", variant: "destructive" });
+      let msg = "Invalid or expired access code";
+      try {
+        const jsonStr = error.message?.replace(/^\d+:\s*/, "");
+        const parsed = JSON.parse(jsonStr);
+        if (parsed.message) msg = parsed.message;
+      } catch {}
+      toast({ description: msg, variant: "destructive" });
     } finally {
       setLoading(false);
     }

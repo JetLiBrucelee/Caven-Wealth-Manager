@@ -991,12 +991,12 @@ interface ChatMessage {
 }
 
 function FloatingChatButton({ currentPage, onNavigate }: { currentPage: Page; onNavigate: (p: Page) => void }) {
-  const { data: messages } = useQuery<ChatMessage[]>({
-    queryKey: ["/api/customer/chat"],
+  const { data: unreadData } = useQuery<{ unreadCount: number }>({
+    queryKey: ["/api/customer/chat/unread"],
     refetchInterval: 3000,
   });
 
-  const hasUnread = messages?.some(m => m.senderType === "admin" && !m.isRead) || false;
+  const hasUnread = (unreadData?.unreadCount ?? 0) > 0;
 
   if (currentPage === "support") return null;
 

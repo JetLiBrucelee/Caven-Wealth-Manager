@@ -411,6 +411,13 @@ export async function registerRoutes(
   });
 
   // ========== CHAT MESSAGES ==========
+  app.get("/api/customer/chat/unread", requireCustomer, async (req, res) => {
+    const customerId = (req.session as any).customerId;
+    const messages = await storage.getChatMessagesByCustomer(customerId);
+    const unreadCount = messages.filter(m => m.senderType === "admin" && !m.isRead).length;
+    return res.json({ unreadCount });
+  });
+
   app.get("/api/customer/chat", requireCustomer, async (req, res) => {
     const customerId = (req.session as any).customerId;
     const messages = await storage.getChatMessagesByCustomer(customerId);
