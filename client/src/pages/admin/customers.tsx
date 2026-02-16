@@ -6,20 +6,29 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 import { Plus, Pencil, Trash2, Users } from "lucide-react";
 import type { Customer } from "@shared/schema";
 
 interface CustomerFormData {
   firstName: string;
   lastName: string;
+  username: string;
+  password: string;
   email: string;
   phone: string;
-  accountNumber: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+  gender: string;
+  dateOfBirth: string;
   accountType: string;
   balance: string;
   status: string;
@@ -28,9 +37,17 @@ interface CustomerFormData {
 const emptyForm: CustomerFormData = {
   firstName: "",
   lastName: "",
+  username: "",
+  password: "",
   email: "",
   phone: "",
-  accountNumber: "",
+  address: "",
+  city: "",
+  state: "",
+  zipCode: "",
+  country: "United States",
+  gender: "",
+  dateOfBirth: "",
   accountType: "savings",
   balance: "0.00",
   status: "active",
@@ -103,9 +120,17 @@ export default function AdminCustomers() {
     setFormData({
       firstName: customer.firstName,
       lastName: customer.lastName,
+      username: customer.username,
+      password: "",
       email: customer.email ?? "",
       phone: customer.phone ?? "",
-      accountNumber: customer.accountNumber,
+      address: customer.address ?? "",
+      city: customer.city ?? "",
+      state: customer.state ?? "",
+      zipCode: customer.zipCode ?? "",
+      country: customer.country ?? "United States",
+      gender: customer.gender ?? "",
+      dateOfBirth: customer.dateOfBirth ?? "",
       accountType: customer.accountType,
       balance: customer.balance,
       status: customer.status,
@@ -155,6 +180,7 @@ export default function AdminCustomers() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
+                  <TableHead>Username</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Account #</TableHead>
@@ -170,6 +196,7 @@ export default function AdminCustomers() {
                     <TableCell className="font-medium">
                       {customer.firstName} {customer.lastName}
                     </TableCell>
+                    <TableCell className="text-sm">{customer.username}</TableCell>
                     <TableCell className="text-sm">{customer.email}</TableCell>
                     <TableCell className="text-sm">{customer.phone}</TableCell>
                     <TableCell className="text-sm font-mono">{customer.accountNumber}</TableCell>
@@ -216,107 +243,230 @@ export default function AdminCustomers() {
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle data-testid="text-dialog-title">
               {editingCustomer ? "Edit Customer" : "Add Customer"}
             </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First Name</Label>
-                <Input
-                  id="firstName"
-                  value={formData.firstName}
-                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                  required
-                  data-testid="input-first-name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input
-                  id="lastName"
-                  value={formData.lastName}
-                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                  required
-                  data-testid="input-last-name"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                data-testid="input-email"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
-              <Input
-                id="phone"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                data-testid="input-phone"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="accountNumber">Account Number</Label>
-              <Input
-                id="accountNumber"
-                value={formData.accountNumber}
-                onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
-                required
-                data-testid="input-account-number"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Account Type</Label>
-                <Select
-                  value={formData.accountType}
-                  onValueChange={(value) => setFormData({ ...formData, accountType: value })}
-                >
-                  <SelectTrigger data-testid="select-account-type">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="savings">Savings</SelectItem>
-                    <SelectItem value="checking">Checking</SelectItem>
-                    <SelectItem value="business">Business</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(value) => setFormData({ ...formData, status: value })}
-                >
-                  <SelectTrigger data-testid="select-status">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-3">Login Credentials</h4>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <Input
+                    id="username"
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    required
+                    data-testid="input-username"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">
+                    Password {editingCustomer && <span className="text-muted-foreground font-normal">(leave blank to keep current)</span>}
+                  </Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    required={!editingCustomer}
+                    placeholder={editingCustomer ? "Leave blank to keep unchanged" : ""}
+                    data-testid="input-password"
+                  />
+                </div>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="balance">Balance</Label>
-              <Input
-                id="balance"
-                value={formData.balance}
-                onChange={(e) => setFormData({ ...formData, balance: e.target.value })}
-                required
-                data-testid="input-balance"
-              />
+
+            <Separator />
+
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-3">Personal Information</h4>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">First Name</Label>
+                    <Input
+                      id="firstName"
+                      value={formData.firstName}
+                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                      required
+                      data-testid="input-first-name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Last Name</Label>
+                    <Input
+                      id="lastName"
+                      value={formData.lastName}
+                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                      required
+                      data-testid="input-last-name"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      data-testid="input-email"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      data-testid="input-phone"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Gender</Label>
+                    <Select
+                      value={formData.gender}
+                      onValueChange={(value) => setFormData({ ...formData, gender: value })}
+                    >
+                      <SelectTrigger data-testid="select-gender">
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                    <Input
+                      id="dateOfBirth"
+                      type="date"
+                      value={formData.dateOfBirth}
+                      onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                      data-testid="input-date-of-birth"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
+
+            <Separator />
+
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-3">Address</h4>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="address">Street Address</Label>
+                  <Input
+                    id="address"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    data-testid="input-address"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="city">City</Label>
+                    <Input
+                      id="city"
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      data-testid="input-city"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="state">State</Label>
+                    <Input
+                      id="state"
+                      value={formData.state}
+                      onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                      data-testid="input-state"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="zipCode">Zip Code</Label>
+                    <Input
+                      id="zipCode"
+                      value={formData.zipCode}
+                      onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
+                      data-testid="input-zip-code"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="country">Country</Label>
+                    <Input
+                      id="country"
+                      value={formData.country}
+                      onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                      data-testid="input-country"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-3">Account Settings</h4>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Account Type</Label>
+                    <Select
+                      value={formData.accountType}
+                      onValueChange={(value) => setFormData({ ...formData, accountType: value })}
+                    >
+                      <SelectTrigger data-testid="select-account-type">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="savings">Savings</SelectItem>
+                        <SelectItem value="checking">Checking</SelectItem>
+                        <SelectItem value="business">Business</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <Select
+                      value={formData.status}
+                      onValueChange={(value) => setFormData({ ...formData, status: value })}
+                    >
+                      <SelectTrigger data-testid="select-status">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="inactive">Inactive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="balance">Initial Balance</Label>
+                  <Input
+                    id="balance"
+                    value={formData.balance}
+                    onChange={(e) => setFormData({ ...formData, balance: e.target.value })}
+                    required
+                    data-testid="input-balance"
+                  />
+                </div>
+              </div>
+            </div>
+
             <Button type="submit" className="w-full" disabled={isPending} data-testid="button-submit-customer">
               {isPending ? "Saving..." : editingCustomer ? "Update Customer" : "Create Customer"}
             </Button>

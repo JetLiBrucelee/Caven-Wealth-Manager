@@ -2,8 +2,9 @@ import {
   type Admin, type InsertAdmin,
   type Customer, type InsertCustomer,
   type Transaction, type InsertTransaction,
+  type Transfer, type InsertTransfer,
   type AccessCode, type InsertAccessCode,
-  admins, customers, transactions, accessCodes
+  admins, customers, transactions, transfers, accessCodes
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, gt, lt, and } from "drizzle-orm";
@@ -17,9 +18,11 @@ export interface IStorage {
 
   getCustomers(): Promise<Customer[]>;
   getCustomer(id: number): Promise<Customer | undefined>;
+  getCustomerByUsername(username: string): Promise<Customer | undefined>;
   createCustomer(customer: InsertCustomer): Promise<Customer>;
   updateCustomer(id: number, customer: Partial<InsertCustomer>): Promise<Customer | undefined>;
   deleteCustomer(id: number): Promise<boolean>;
+  validateCustomerPassword(username: string, password: string): Promise<Customer | null>;
 
   getTransactions(): Promise<Transaction[]>;
   getTransactionsByCustomer(customerId: number): Promise<Transaction[]>;
@@ -27,6 +30,13 @@ export interface IStorage {
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
   updateTransaction(id: number, transaction: Partial<InsertTransaction>): Promise<Transaction | undefined>;
   deleteTransaction(id: number): Promise<boolean>;
+
+  getTransfers(): Promise<Transfer[]>;
+  getTransfersByCustomer(customerId: number): Promise<Transfer[]>;
+  getPendingTransfers(): Promise<Transfer[]>;
+  getTransfer(id: number): Promise<Transfer | undefined>;
+  createTransfer(transfer: InsertTransfer): Promise<Transfer>;
+  updateTransferStatus(id: number, status: string): Promise<Transfer | undefined>;
 
   getAccessCodes(): Promise<AccessCode[]>;
   getActiveAccessCodes(): Promise<AccessCode[]>;
@@ -73,20 +83,41 @@ export class DatabaseStorage implements IStorage {
     return customer;
   }
 
+  async getCustomerByUsername(username: string): Promise<Customer | undefined> {
+    const [customer] = await db.select().from(customers).where(eq(customers.username, username));
+    return customer;
+  }
+
   async createCustomer(customer: InsertCustomer): Promise<Customer> {
-    const [created] = await db.insert(customers).values(customer).returning();
+    const hashedPassword = await bcrypt.hash(customer.password, 10);
+    const [created] = await db.insert(customers).values({
+      ...customer,
+      password: hashedPassword,
+    }).returning();
     return created;
   }
 
   async updateCustomer(id: number, customer: Partial<InsertCustomer>): Promise<Customer | undefined> {
-    const [updated] = await db.update(customers).set(customer).where(eq(customers.id, id)).returning();
+    const updateData = { ...customer };
+    if (updateData.password) {
+      updateData.password = await bcrypt.hash(updateData.password, 10);
+    }
+    const [updated] = await db.update(customers).set(updateData).where(eq(customers.id, id)).returning();
     return updated;
   }
 
   async deleteCustomer(id: number): Promise<boolean> {
+    await db.delete(transfers).where(eq(transfers.customerId, id));
     await db.delete(transactions).where(eq(transactions.customerId, id));
     const result = await db.delete(customers).where(eq(customers.id, id)).returning();
     return result.length > 0;
+  }
+
+  async validateCustomerPassword(username: string, password: string): Promise<Customer | null> {
+    const customer = await this.getCustomerByUsername(username);
+    if (!customer) return null;
+    const valid = await bcrypt.compare(password, customer.password);
+    return valid ? customer : null;
   }
 
   async getTransactions(): Promise<Transaction[]> {
@@ -115,6 +146,33 @@ export class DatabaseStorage implements IStorage {
   async deleteTransaction(id: number): Promise<boolean> {
     const result = await db.delete(transactions).where(eq(transactions.id, id)).returning();
     return result.length > 0;
+  }
+
+  async getTransfers(): Promise<Transfer[]> {
+    return await db.select().from(transfers).orderBy(desc(transfers.createdAt));
+  }
+
+  async getTransfersByCustomer(customerId: number): Promise<Transfer[]> {
+    return await db.select().from(transfers).where(eq(transfers.customerId, customerId)).orderBy(desc(transfers.createdAt));
+  }
+
+  async getPendingTransfers(): Promise<Transfer[]> {
+    return await db.select().from(transfers).where(eq(transfers.status, "pending")).orderBy(desc(transfers.createdAt));
+  }
+
+  async getTransfer(id: number): Promise<Transfer | undefined> {
+    const [transfer] = await db.select().from(transfers).where(eq(transfers.id, id));
+    return transfer;
+  }
+
+  async createTransfer(transfer: InsertTransfer): Promise<Transfer> {
+    const [created] = await db.insert(transfers).values(transfer).returning();
+    return created;
+  }
+
+  async updateTransferStatus(id: number, status: string): Promise<Transfer | undefined> {
+    const [updated] = await db.update(transfers).set({ status, updatedAt: new Date() }).where(eq(transfers.id, id)).returning();
+    return updated;
   }
 
   async getAccessCodes(): Promise<AccessCode[]> {

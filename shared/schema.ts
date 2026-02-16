@@ -24,9 +24,19 @@ export const customers = pgTable("customers", {
   id: serial("id").primaryKey(),
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
   email: text("email"),
   phone: text("phone"),
+  address: text("address"),
+  city: text("city"),
+  state: text("state"),
+  zipCode: text("zip_code"),
+  country: text("country").default("United States"),
+  gender: text("gender"),
+  dateOfBirth: text("date_of_birth"),
   accountNumber: text("account_number").notNull().unique(),
+  routingNumber: text("routing_number").notNull(),
   accountType: text("account_type").notNull().default("savings"),
   balance: text("balance").notNull().default("0.00"),
   status: text("status").notNull().default("active"),
@@ -46,6 +56,27 @@ export const transactions = pgTable("transactions", {
   beneficiaryBank: text("beneficiary_bank"),
   beneficiaryAccount: text("beneficiary_account"),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const transfers = pgTable("transfers", {
+  id: serial("id").primaryKey(),
+  customerId: integer("customer_id").notNull().references(() => customers.id),
+  type: text("type").notNull(),
+  amount: text("amount").notNull(),
+  description: text("description"),
+  status: text("status").notNull().default("pending"),
+  recipientName: text("recipient_name"),
+  recipientBank: text("recipient_bank"),
+  recipientAccount: text("recipient_account"),
+  recipientRoutingNumber: text("recipient_routing_number"),
+  swiftCode: text("swift_code"),
+  bankAddress: text("bank_address"),
+  memo: text("memo"),
+  billPayee: text("bill_payee"),
+  billAccountNumber: text("bill_account_number"),
+  internalToAccount: text("internal_to_account"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const accessCodes = pgTable("access_codes", {
@@ -72,6 +103,12 @@ export const insertTransactionSchema = createInsertSchema(transactions).omit({
   createdAt: true,
 });
 
+export const insertTransferSchema = createInsertSchema(transfers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertAccessCodeSchema = createInsertSchema(accessCodes).omit({
   id: true,
   createdAt: true,
@@ -83,5 +120,7 @@ export type Customer = typeof customers.$inferSelect;
 export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
 export type Transaction = typeof transactions.$inferSelect;
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
+export type Transfer = typeof transfers.$inferSelect;
+export type InsertTransfer = z.infer<typeof insertTransferSchema>;
 export type AccessCode = typeof accessCodes.$inferSelect;
 export type InsertAccessCode = z.infer<typeof insertAccessCodeSchema>;

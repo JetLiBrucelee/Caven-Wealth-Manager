@@ -33,6 +33,7 @@ export async function registerRoutes(
 
   await seedAdmin();
 
+  // ========== ADMIN AUTH ==========
   app.post("/api/admin/login", async (req, res) => {
     try {
       const { username, password } = req.body;
@@ -63,6 +64,137 @@ export async function registerRoutes(
     return res.json({ id: admin.id, username: admin.username });
   });
 
+  // ========== CUSTOMER AUTH ==========
+  app.post("/api/customer/login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password required" });
+      }
+      const customer = await storage.validateCustomerPassword(username, password);
+      if (!customer) {
+        return res.status(401).json({ message: "Invalid username or password" });
+      }
+      (req.session as any).customerLoginId = customer.id;
+      (req.session as any).customerLoginStep = "needs_code";
+      return res.json({ step: "needs_code", customerId: customer.id });
+    } catch (error) {
+      return res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  app.post("/api/customer/verify-code", async (req, res) => {
+    try {
+      const { code } = req.body;
+      const customerLoginId = (req.session as any).customerLoginId;
+      const step = (req.session as any).customerLoginStep;
+
+      if (!customerLoginId || step !== "needs_code") {
+        return res.status(401).json({ message: "Please login with username and password first" });
+      }
+      if (!code) {
+        return res.status(400).json({ message: "Access code required" });
+      }
+
+      const accessCode = await storage.getAccessCode(code);
+      if (!accessCode) {
+        return res.status(401).json({ message: "Invalid or expired access code" });
+      }
+
+      (req.session as any).customerId = customerLoginId;
+      (req.session as any).customerAuthenticated = true;
+      (req.session as any).customerLoginStep = null;
+
+      const customer = await storage.getCustomer(customerLoginId);
+      return res.json({
+        authenticated: true,
+        customer: customer ? {
+          id: customer.id,
+          firstName: customer.firstName,
+          lastName: customer.lastName,
+          username: customer.username,
+          email: customer.email,
+          phone: customer.phone,
+          address: customer.address,
+          city: customer.city,
+          state: customer.state,
+          zipCode: customer.zipCode,
+          country: customer.country,
+          gender: customer.gender,
+          dateOfBirth: customer.dateOfBirth,
+          accountNumber: customer.accountNumber,
+          routingNumber: customer.routingNumber,
+          accountType: customer.accountType,
+          balance: customer.balance,
+          status: customer.status,
+          createdAt: customer.createdAt,
+        } : null,
+      });
+    } catch (error) {
+      return res.status(500).json({ message: "Verification failed" });
+    }
+  });
+
+  app.get("/api/customer/me", requireCustomer, async (req, res) => {
+    const customer = await storage.getCustomer((req.session as any).customerId);
+    if (!customer) return res.status(401).json({ message: "Not authenticated" });
+    return res.json({
+      id: customer.id,
+      firstName: customer.firstName,
+      lastName: customer.lastName,
+      username: customer.username,
+      email: customer.email,
+      phone: customer.phone,
+      address: customer.address,
+      city: customer.city,
+      state: customer.state,
+      zipCode: customer.zipCode,
+      country: customer.country,
+      gender: customer.gender,
+      dateOfBirth: customer.dateOfBirth,
+      accountNumber: customer.accountNumber,
+      routingNumber: customer.routingNumber,
+      accountType: customer.accountType,
+      balance: customer.balance,
+      status: customer.status,
+      createdAt: customer.createdAt,
+    });
+  });
+
+  app.post("/api/customer/logout", (req, res) => {
+    req.session.destroy(() => {
+      res.json({ message: "Logged out" });
+    });
+  });
+
+  // ========== CUSTOMER TRANSFERS (user-initiated) ==========
+  app.post("/api/customer/transfers", requireCustomer, async (req, res) => {
+    try {
+      const customerId = (req.session as any).customerId;
+      const transfer = await storage.createTransfer({
+        ...req.body,
+        customerId,
+        status: "pending",
+      });
+      return res.status(201).json(transfer);
+    } catch (error: any) {
+      return res.status(400).json({ message: error.message || "Failed to create transfer" });
+    }
+  });
+
+  app.get("/api/customer/transfers", requireCustomer, async (req, res) => {
+    const customerId = (req.session as any).customerId;
+    const list = await storage.getTransfersByCustomer(customerId);
+    return res.json(list);
+  });
+
+  app.get("/api/customer/transactions", requireCustomer, async (req, res) => {
+    const customerId = (req.session as any).customerId;
+    const list = await storage.getTransactionsByCustomer(customerId);
+    return res.json(list);
+  });
+
+  // ========== ADMIN: CUSTOMERS ==========
   app.get("/api/customers", requireAdmin, async (_req, res) => {
     const list = await storage.getCustomers();
     return res.json(list);
@@ -76,7 +208,13 @@ export async function registerRoutes(
 
   app.post("/api/customers", requireAdmin, async (req, res) => {
     try {
-      const customer = await storage.createCustomer(req.body);
+      const accountNumber = generateAccountNumber();
+      const routingNumber = generateRoutingNumber();
+      const customer = await storage.createCustomer({
+        ...req.body,
+        accountNumber,
+        routingNumber,
+      });
       return res.status(201).json(customer);
     } catch (error: any) {
       return res.status(400).json({ message: error.message || "Failed to create customer" });
@@ -84,7 +222,11 @@ export async function registerRoutes(
   });
 
   app.patch("/api/customers/:id", requireAdmin, async (req, res) => {
-    const updated = await storage.updateCustomer(parseInt(req.params.id), req.body);
+    const updateData = { ...req.body };
+    if (updateData.password === "") {
+      delete updateData.password;
+    }
+    const updated = await storage.updateCustomer(parseInt(req.params.id), updateData);
     if (!updated) return res.status(404).json({ message: "Customer not found" });
     return res.json(updated);
   });
@@ -95,6 +237,7 @@ export async function registerRoutes(
     return res.json({ message: "Customer deleted" });
   });
 
+  // ========== ADMIN: TRANSACTIONS ==========
   app.get("/api/transactions", requireAdmin, async (_req, res) => {
     const list = await storage.getTransactions();
     return res.json(list);
@@ -135,6 +278,57 @@ export async function registerRoutes(
     return res.json({ message: "Transaction deleted" });
   });
 
+  // ========== ADMIN: TRANSFERS ==========
+  app.get("/api/transfers", requireAdmin, async (_req, res) => {
+    const list = await storage.getTransfers();
+    return res.json(list);
+  });
+
+  app.get("/api/transfers/pending", requireAdmin, async (_req, res) => {
+    const list = await storage.getPendingTransfers();
+    return res.json(list);
+  });
+
+  app.patch("/api/transfers/:id/status", requireAdmin, async (req, res) => {
+    try {
+      const { status } = req.body;
+      if (!["approved", "rejected"].includes(status)) {
+        return res.status(400).json({ message: "Status must be 'approved' or 'rejected'" });
+      }
+      const transfer = await storage.getTransfer(parseInt(req.params.id));
+      if (!transfer) return res.status(404).json({ message: "Transfer not found" });
+
+      const updated = await storage.updateTransferStatus(parseInt(req.params.id), status);
+
+      if (status === "approved" && updated) {
+        const customer = await storage.getCustomer(updated.customerId);
+        if (customer) {
+          const currentBalance = parseFloat(customer.balance);
+          const amount = parseFloat(updated.amount);
+          const newBalance = (currentBalance - amount).toFixed(2);
+          await storage.updateCustomer(customer.id, { balance: newBalance });
+        }
+        await storage.createTransaction({
+          customerId: updated.customerId,
+          type: updated.type,
+          amount: updated.amount,
+          description: updated.description || `${updated.type} to ${updated.recipientName || updated.billPayee || updated.internalToAccount || 'N/A'}`,
+          date: new Date(),
+          status: "completed",
+          reference: `TXN-${Date.now()}`,
+          beneficiary: updated.recipientName || updated.billPayee || null,
+          beneficiaryBank: updated.recipientBank || null,
+          beneficiaryAccount: updated.recipientAccount || updated.billAccountNumber || updated.internalToAccount || null,
+        });
+      }
+
+      return res.json(updated);
+    } catch (error: any) {
+      return res.status(400).json({ message: error.message || "Failed to update transfer" });
+    }
+  });
+
+  // ========== ACCESS CODES ==========
   app.get("/api/access-codes", requireAdmin, async (_req, res) => {
     const codes = await storage.getActiveAccessCodes();
     return res.json(codes);
@@ -171,15 +365,6 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/user/transactions/:code", async (req, res) => {
-    const accessCode = await storage.getAccessCode(req.params.code);
-    if (!accessCode) return res.status(401).json({ message: "Invalid or expired code" });
-    if (!accessCode.customerId) return res.status(400).json({ message: "No customer assigned to this code" });
-    const customer = await storage.getCustomer(accessCode.customerId);
-    const txns = await storage.getTransactionsByCustomer(accessCode.customerId);
-    return res.json({ customer, transactions: txns });
-  });
-
   return httpServer;
 }
 
@@ -188,6 +373,31 @@ function requireAdmin(req: any, res: any, next: any) {
     return res.status(401).json({ message: "Admin authentication required" });
   }
   next();
+}
+
+function requireCustomer(req: any, res: any, next: any) {
+  if (!(req.session as any).customerAuthenticated) {
+    return res.status(401).json({ message: "Customer authentication required" });
+  }
+  next();
+}
+
+function generateAccountNumber(): string {
+  const prefix = "4";
+  let num = prefix;
+  for (let i = 0; i < 9; i++) {
+    num += Math.floor(Math.random() * 10).toString();
+  }
+  return num;
+}
+
+function generateRoutingNumber(): string {
+  const prefix = "0";
+  let num = prefix;
+  for (let i = 0; i < 8; i++) {
+    num += Math.floor(Math.random() * 10).toString();
+  }
+  return num;
 }
 
 async function seedAdmin() {
