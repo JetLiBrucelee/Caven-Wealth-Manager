@@ -184,7 +184,7 @@ export default function Home() {
                     className="mt-6 text-white border-white/40 backdrop-blur-sm bg-white/10 hover:bg-white/20 transition-all"
                     data-testid="button-why-choose-us"
                   >
-                    About Our Company
+                    About Our Banking
                   </Button>
                 </Link>
               </div>
@@ -240,7 +240,7 @@ export default function Home() {
       <section className="py-16 bg-gradient-to-br from-indigo-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold text-foreground" data-testid="text-company-heading">
-            Our Company
+            Our Banking
           </h2>
           <p className="mt-4 text-muted-foreground max-w-3xl mx-auto text-lg">
             Caven Wealth Financial is a privately held company committed to innovation,

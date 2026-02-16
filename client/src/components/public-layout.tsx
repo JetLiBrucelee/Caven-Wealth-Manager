@@ -24,7 +24,7 @@ const navLinks = [
     ],
   },
   {
-    label: "Company",
+    label: "Our Banking",
     href: "/company",
     dropdown: [
       { label: "About Us", href: "/company" },

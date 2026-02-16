@@ -60,7 +60,7 @@ export default function Company() {
         <div className="absolute inset-0 bg-black/40" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <h1 className="text-4xl md:text-5xl font-bold text-white" data-testid="text-company-title">
-            Our Company
+            Our Banking
           </h1>
           <p className="mt-4 text-lg text-blue-100 max-w-2xl">
             Nearly five decades of innovation, integrity, and excellence in financial services.

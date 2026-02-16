@@ -30,6 +30,8 @@ export default function AdminOverview() {
 
   const recentTransactions = transactions?.slice(0, 10) ?? [];
 
+  const adminBalance = 500000000000;
+
   const stats = [
     {
       title: "Total Customers",
@@ -67,6 +69,23 @@ export default function AdminOverview() {
         <h2 className="text-2xl font-bold" data-testid="text-page-title">Dashboard Overview</h2>
         <p className="text-muted-foreground text-sm mt-1">Welcome to the admin dashboard</p>
       </div>
+
+      <Card className="bg-gradient-to-r from-[#0f1a3e] to-[#1a2a5e] text-white border-0 shadow-xl">
+        <CardContent className="py-8 px-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-white/60 text-sm font-medium uppercase tracking-wider mb-2">Admin Account Balance</p>
+              <p className="text-4xl sm:text-5xl font-bold tracking-tight" data-testid="text-admin-balance" style={{ fontVariantNumeric: "tabular-nums" }}>
+                ${adminBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </p>
+              <p className="text-white/40 text-xs mt-2">Available for customer fund allocation</p>
+            </div>
+            <div className="hidden sm:flex w-16 h-16 rounded-2xl bg-white/10 items-center justify-center shrink-0">
+              <DollarSign className="w-8 h-8 text-white/80" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => (
