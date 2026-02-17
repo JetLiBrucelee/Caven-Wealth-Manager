@@ -38,7 +38,7 @@ export interface IStorage {
   getPendingTransfers(): Promise<Transfer[]>;
   getTransfer(id: number): Promise<Transfer | undefined>;
   createTransfer(transfer: InsertTransfer): Promise<Transfer>;
-  updateTransferStatus(id: number, status: string): Promise<Transfer | undefined>;
+  updateTransferStatus(id: number, status: string, declineReason?: string): Promise<Transfer | undefined>;
 
   getAccessCodes(): Promise<AccessCode[]>;
   getActiveAccessCodes(): Promise<AccessCode[]>;
@@ -190,8 +190,12 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async updateTransferStatus(id: number, status: string): Promise<Transfer | undefined> {
-    const [updated] = await db.update(transfers).set({ status, updatedAt: new Date() }).where(eq(transfers.id, id)).returning();
+  async updateTransferStatus(id: number, status: string, declineReason?: string): Promise<Transfer | undefined> {
+    const updateData: any = { status, updatedAt: new Date() };
+    if (declineReason !== undefined) {
+      updateData.declineReason = declineReason;
+    }
+    const [updated] = await db.update(transfers).set(updateData).where(eq(transfers.id, id)).returning();
     return updated;
   }
 

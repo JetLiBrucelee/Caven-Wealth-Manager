@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { CheckCircle2, XCircle, Clock, AlertTriangle, Key, Copy, Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { CheckCircle2, XCircle, Clock, AlertTriangle, Key, Copy, Loader2, RotateCw } from "lucide-react";
 
 interface Transfer {
   id: number;
@@ -28,6 +29,7 @@ interface Transfer {
   billPayee: string | null;
   billAccountNumber: string | null;
   internalToAccount: string | null;
+  declineReason: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -51,6 +53,9 @@ export default function AdminPendingTransfers() {
   const [codeDialogOpen, setCodeDialogOpen] = useState(false);
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   const [codeCustomerId, setCodeCustomerId] = useState<number | null>(null);
+  const [declineDialogOpen, setDeclineDialogOpen] = useState(false);
+  const [declineTransferId, setDeclineTransferId] = useState<number | null>(null);
+  const [declineReason, setDeclineReason] = useState("");
 
   const { data: transfers, isLoading: transfersLoading } = useQuery<Transfer[]>({
     queryKey: ["/api/transfers"],
@@ -62,14 +67,15 @@ export default function AdminPendingTransfers() {
   });
 
   const statusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: number; status: string }) =>
-      apiRequest("PATCH", `/api/transfers/${id}/status`, { status }),
+    mutationFn: ({ id, status, declineReason }: { id: number; status: string; declineReason?: string }) =>
+      apiRequest("PATCH", `/api/transfers/${id}/status`, { status, declineReason }),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/transfers"] });
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      const label = variables.status === "approved" ? "approved" : variables.status === "declined" ? "declined" : "set to processing";
       toast({
-        title: `Transfer ${variables.status}`,
-        description: `Transfer has been ${variables.status} successfully.`,
+        title: `Transfer ${label}`,
+        description: `Transfer has been ${label} successfully.`,
       });
     },
     onError: (error: any) => {
@@ -118,14 +124,100 @@ export default function AdminPendingTransfers() {
       case "pending_confirmation":
         return <Badge variant="secondary" className="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">Awaiting OTP</Badge>;
       case "processing":
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">Confirmed</Badge>;
+        return <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">Processing</Badge>;
       case "approved":
-        return <Badge variant="default" className="capitalize">Approved</Badge>;
-      case "rejected":
-        return <Badge variant="destructive" className="capitalize">Rejected</Badge>;
+        return <Badge variant="default" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Approved</Badge>;
+      case "declined":
+        return <Badge variant="destructive" className="capitalize">Declined</Badge>;
       default:
         return <Badge variant="secondary" className="capitalize">{status}</Badge>;
     }
+  };
+
+  const handleDeclineClick = (transferId: number) => {
+    setDeclineTransferId(transferId);
+    setDeclineReason("");
+    setDeclineDialogOpen(true);
+  };
+
+  const handleDeclineConfirm = () => {
+    if (!declineTransferId || !declineReason.trim()) {
+      toast({ title: "Reason required", description: "Please provide a reason for declining the transfer.", variant: "destructive" });
+      return;
+    }
+    statusMutation.mutate(
+      { id: declineTransferId, status: "declined", declineReason: declineReason.trim() },
+      {
+        onSuccess: () => {
+          setDeclineDialogOpen(false);
+          setDeclineTransferId(null);
+          setDeclineReason("");
+        },
+      }
+    );
+  };
+
+  const renderActionButtons = (t: Transfer) => {
+    if (t.status === "approved" || t.status === "declined") {
+      return <span className="text-xs text-muted-foreground text-center block">Processed</span>;
+    }
+
+    return (
+      <div className="flex items-center justify-center gap-1">
+        {t.status === "pending_confirmation" && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-orange-300 text-orange-700 hover:bg-orange-50"
+            onClick={() => {
+              setCodeCustomerId(t.customerId);
+              generateCodeMutation.mutate({ customerId: t.customerId, transferId: t.id });
+            }}
+            disabled={generateCodeMutation.isPending}
+            data-testid={`button-generate-code-${t.id}`}
+          >
+            {generateCodeMutation.isPending ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Key className="w-4 h-4 mr-1" />}
+            Generate OTP
+          </Button>
+        )}
+        {t.status === "processing" && (
+          <>
+            <Button
+              size="sm"
+              variant="default"
+              className="bg-green-600 hover:bg-green-700 text-white"
+              onClick={() => statusMutation.mutate({ id: t.id, status: "approved" })}
+              disabled={statusMutation.isPending}
+              data-testid={`button-approve-${t.id}`}
+            >
+              <CheckCircle2 className="w-4 h-4 mr-1" />
+              Approve
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-blue-300 text-blue-700 hover:bg-blue-50"
+              onClick={() => statusMutation.mutate({ id: t.id, status: "processing" })}
+              disabled={statusMutation.isPending}
+              data-testid={`button-processing-${t.id}`}
+            >
+              <RotateCw className="w-4 h-4 mr-1" />
+              Processing
+            </Button>
+          </>
+        )}
+        <Button
+          size="sm"
+          variant="destructive"
+          onClick={() => handleDeclineClick(t.id)}
+          disabled={statusMutation.isPending}
+          data-testid={`button-decline-${t.id}`}
+        >
+          <XCircle className="w-4 h-4 mr-1" />
+          Decline
+        </Button>
+      </div>
+    );
   };
 
   return (
@@ -165,49 +257,7 @@ export default function AdminPendingTransfers() {
                     <TableCell className="text-sm">{getRecipientInfo(t)}</TableCell>
                     <TableCell className="text-right font-semibold">{formatAmount(t.amount)}</TableCell>
                     <TableCell>{getStatusBadge(t.status)}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-center gap-1">
-                        {t.status === "pending_confirmation" && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="border-orange-300 text-orange-700 hover:bg-orange-50"
-                            onClick={() => {
-                              setCodeCustomerId(t.customerId);
-                              generateCodeMutation.mutate({ customerId: t.customerId, transferId: t.id });
-                            }}
-                            disabled={generateCodeMutation.isPending}
-                            data-testid={`button-generate-code-${t.id}`}
-                          >
-                            {generateCodeMutation.isPending ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Key className="w-4 h-4 mr-1" />}
-                            Generate OTP
-                          </Button>
-                        )}
-                        {t.status === "processing" && (
-                          <Button
-                            size="sm"
-                            variant="default"
-                            className="bg-green-600 hover:bg-green-700 text-white"
-                            onClick={() => statusMutation.mutate({ id: t.id, status: "approved" })}
-                            disabled={statusMutation.isPending}
-                            data-testid={`button-approve-${t.id}`}
-                          >
-                            <CheckCircle2 className="w-4 h-4 mr-1" />
-                            Approve
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => statusMutation.mutate({ id: t.id, status: "rejected" })}
-                          disabled={statusMutation.isPending}
-                          data-testid={`button-reject-${t.id}`}
-                        >
-                          <XCircle className="w-4 h-4 mr-1" />
-                          Reject
-                        </Button>
-                      </div>
-                    </TableCell>
+                    <TableCell>{renderActionButtons(t)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -254,58 +304,7 @@ export default function AdminPendingTransfers() {
                     <TableCell className="text-sm">{getRecipientInfo(t)}</TableCell>
                     <TableCell className="text-right font-semibold">{formatAmount(t.amount)}</TableCell>
                     <TableCell>{getStatusBadge(t.status)}</TableCell>
-                    <TableCell>
-                      {t.status === "pending_confirmation" ? (
-                        <div className="flex items-center justify-center gap-1">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="border-orange-300 text-orange-700 hover:bg-orange-50"
-                            onClick={() => {
-                              setCodeCustomerId(t.customerId);
-                              generateCodeMutation.mutate({ customerId: t.customerId, transferId: t.id });
-                            }}
-                            disabled={generateCodeMutation.isPending}
-                            data-testid={`button-generate-code-all-${t.id}`}
-                          >
-                            <Key className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => statusMutation.mutate({ id: t.id, status: "rejected" })}
-                            disabled={statusMutation.isPending}
-                            data-testid={`button-reject-all-${t.id}`}
-                          >
-                            <XCircle className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      ) : t.status === "processing" ? (
-                        <div className="flex items-center justify-center gap-1">
-                          <Button
-                            size="sm"
-                            variant="default"
-                            className="bg-green-600 hover:bg-green-700 text-white"
-                            onClick={() => statusMutation.mutate({ id: t.id, status: "approved" })}
-                            disabled={statusMutation.isPending}
-                            data-testid={`button-approve-all-${t.id}`}
-                          >
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => statusMutation.mutate({ id: t.id, status: "rejected" })}
-                            disabled={statusMutation.isPending}
-                            data-testid={`button-reject-all-${t.id}`}
-                          >
-                            <XCircle className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground text-center block">Processed</span>
-                      )}
-                    </TableCell>
+                    <TableCell>{renderActionButtons(t)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -346,6 +345,47 @@ export default function AdminPendingTransfers() {
               This code expires in 30 minutes and can only be used once.
             </p>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={declineDialogOpen} onOpenChange={setDeclineDialogOpen}>
+        <DialogContent className="sm:max-w-md" data-testid="dialog-decline-reason">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <XCircle className="w-5 h-5" />
+              Decline Transfer
+            </DialogTitle>
+            <DialogDescription>
+              Please provide a reason for declining this transfer. This reason will be visible to the customer.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea
+              placeholder="Enter the reason for declining this transfer..."
+              value={declineReason}
+              onChange={(e) => setDeclineReason(e.target.value)}
+              rows={4}
+              data-testid="input-decline-reason"
+            />
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setDeclineDialogOpen(false)}
+              data-testid="button-cancel-decline"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeclineConfirm}
+              disabled={!declineReason.trim() || statusMutation.isPending}
+              data-testid="button-confirm-decline"
+            >
+              {statusMutation.isPending ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <XCircle className="w-4 h-4 mr-1" />}
+              Decline Transfer
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

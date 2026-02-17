@@ -315,17 +315,24 @@ export async function registerRoutes(
 
   app.patch("/api/transfers/:id/status", requireAdmin, async (req, res) => {
     try {
-      const { status } = req.body;
-      if (!["approved", "rejected"].includes(status)) {
-        return res.status(400).json({ message: "Status must be 'approved' or 'rejected'" });
+      const { status, declineReason } = req.body;
+      if (!["approved", "declined", "processing"].includes(status)) {
+        return res.status(400).json({ message: "Status must be 'approved', 'declined', or 'processing'" });
       }
       const transfer = await storage.getTransfer(parseInt(req.params.id));
       if (!transfer) return res.status(404).json({ message: "Transfer not found" });
       if (status === "approved" && transfer.status === "pending_confirmation") {
         return res.status(400).json({ message: "Transfer must be confirmed by customer before approval" });
       }
+      if (status === "declined" && !declineReason) {
+        return res.status(400).json({ message: "Decline reason is required" });
+      }
 
-      const updated = await storage.updateTransferStatus(parseInt(req.params.id), status);
+      const updated = await storage.updateTransferStatus(
+        parseInt(req.params.id),
+        status,
+        status === "declined" ? declineReason : undefined
+      );
 
       if (status === "approved" && updated) {
         const customer = await storage.getCustomer(updated.customerId);
@@ -342,6 +349,21 @@ export async function registerRoutes(
           description: updated.description || `${updated.type} to ${updated.recipientName || updated.billPayee || updated.internalToAccount || 'N/A'}`,
           date: new Date(),
           status: "completed",
+          reference: `${Date.now()}`,
+          beneficiary: updated.recipientName || updated.billPayee || null,
+          beneficiaryBank: updated.recipientBank || null,
+          beneficiaryAccount: updated.recipientAccount || updated.billAccountNumber || updated.internalToAccount || null,
+        });
+      }
+
+      if (status === "declined" && updated) {
+        await storage.createTransaction({
+          customerId: updated.customerId,
+          type: updated.type,
+          amount: updated.amount,
+          description: updated.declineReason ? `Transfer declined: ${updated.declineReason}` : "Transfer declined",
+          date: new Date(),
+          status: "declined",
           reference: `${Date.now()}`,
           beneficiary: updated.recipientName || updated.billPayee || null,
           beneficiaryBank: updated.recipientBank || null,

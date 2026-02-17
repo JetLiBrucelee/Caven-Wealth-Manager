@@ -78,6 +78,7 @@ interface Transfer {
   billPayee: string | null;
   billAccountNumber: string | null;
   internalToAccount: string | null;
+  declineReason: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -553,8 +554,8 @@ function DashboardView({ customer, onNavigate }: { customer: CustomerData; onNav
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-semibold text-red-600">-{formatAmount(t.amount)}</p>
-                    <Badge variant={t.status === "approved" ? "default" : t.status === "rejected" ? "destructive" : "secondary"} className="capitalize text-xs">
-                      {t.status}
+                    <Badge variant={t.status === "approved" ? "default" : t.status === "declined" ? "destructive" : "secondary"} className="capitalize text-xs">
+                      {t.status === "pending_confirmation" ? "Awaiting Confirmation" : t.status}
                     </Badge>
                   </div>
                 </div>
@@ -569,7 +570,7 @@ function DashboardView({ customer, onNavigate }: { customer: CustomerData; onNav
 
 function StatusIcon({ status }: { status: string }) {
   if (status === "approved") return <CheckCircle2 className="w-5 h-5 text-green-500" />;
-  if (status === "rejected") return <XCircle className="w-5 h-5 text-red-500" />;
+  if (status === "declined") return <XCircle className="w-5 h-5 text-red-500" />;
   return <Clock className="w-5 h-5 text-amber-500" />;
 }
 
@@ -868,8 +869,8 @@ function TransferStatusView() {
         return <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">Processing</Badge>;
       case "approved":
         return <Badge variant="default" className="capitalize">Approved</Badge>;
-      case "rejected":
-        return <Badge variant="destructive" className="capitalize">Rejected</Badge>;
+      case "declined":
+        return <Badge variant="destructive" className="capitalize">Declined</Badge>;
       default:
         return <Badge variant="secondary" className="capitalize">{status}</Badge>;
     }
@@ -945,6 +946,14 @@ function TransferStatusView() {
                             Enter Code
                           </Button>
                         )
+                      ) : t.status === "declined" && t.declineReason ? (
+                        <span className="text-xs text-red-600" data-testid={`text-decline-reason-${t.id}`}>
+                          {t.declineReason}
+                        </span>
+                      ) : t.status === "approved" ? (
+                        <span className="text-xs text-green-600">Completed</span>
+                      ) : t.status === "processing" ? (
+                        <span className="text-xs text-blue-600">Awaiting approval</span>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
