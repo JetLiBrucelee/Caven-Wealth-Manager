@@ -980,28 +980,9 @@ function TransferForm({ type, customer }: { type: string; customer: CustomerData
 }
 
 function TransferStatusView() {
-  const { toast } = useToast();
-  const [confirmingId, setConfirmingId] = useState<number | null>(null);
-  const [confirmCode, setConfirmCode] = useState("");
   const { data: transfers, isLoading } = useQuery<Transfer[]>({
     queryKey: ["/api/customer/transfers"],
     refetchInterval: 3000,
-  });
-
-  const confirmMutation = useMutation({
-    mutationFn: async ({ transferId, code }: { transferId: number; code: string }) => {
-      const res = await apiRequest("POST", `/api/customer/transfers/${transferId}/confirm`, { code });
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/customer/transfers"] });
-      setConfirmingId(null);
-      setConfirmCode("");
-      toast({ title: "Transfer confirmed", description: "Your transfer is now being processed for approval." });
-    },
-    onError: (error: any) => {
-      toast({ title: "Confirmation failed", description: error.message, variant: "destructive" });
-    },
   });
 
   const getTransferStatusBadge = (status: string) => {
@@ -1026,7 +1007,7 @@ function TransferStatusView() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-8 text-center text-muted-foreground">Loading...</div>
-          ) : !transfers?.length ? (
+          ) : !transfers?.filter(t => t.status === "approved").length ? (
             <div className="p-8 text-center text-muted-foreground">No transfers yet</div>
           ) : (
             <Table>
@@ -1037,11 +1018,10 @@ function TransferStatusView() {
                   <TableHead>Recipient</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {transfers.map((t) => (
+                {transfers.filter(t => t.status === "approved").map((t) => (
                   <TableRow key={t.id} data-testid={`row-transfer-${t.id}`}>
                     <TableCell className="text-sm">{format(new Date(t.createdAt), "MMM d, yyyy h:mm a")}</TableCell>
                     <TableCell className="text-sm capitalize">{t.type.replace(/_/g, " ")}</TableCell>
@@ -1049,57 +1029,6 @@ function TransferStatusView() {
                     <TableCell className="text-right font-semibold text-red-600">-{formatAmount(t.amount)}</TableCell>
                     <TableCell data-testid={`badge-transfer-status-${t.id}`}>
                       {getTransferStatusBadge(t.status)}
-                    </TableCell>
-                    <TableCell>
-                      {t.status === "pending_confirmation" ? (
-                        confirmingId === t.id ? (
-                          <div className="flex items-center gap-2">
-                            <Input
-                              placeholder="Enter code"
-                              value={confirmCode}
-                              onChange={(e) => setConfirmCode(e.target.value)}
-                              className="w-32 h-8 text-sm"
-                              data-testid={`input-confirm-code-${t.id}`}
-                            />
-                            <Button
-                              size="sm"
-                              onClick={() => confirmMutation.mutate({ transferId: t.id, code: confirmCode })}
-                              disabled={!confirmCode || confirmMutation.isPending}
-                              data-testid={`button-submit-code-${t.id}`}
-                            >
-                              {confirmMutation.isPending ? "..." : "Confirm"}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => { setConfirmingId(null); setConfirmCode(""); }}
-                              data-testid={`button-cancel-confirm-${t.id}`}
-                            >
-                              Cancel
-                            </Button>
-                          </div>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-orange-700 border-orange-300 hover:bg-orange-50"
-                            onClick={() => setConfirmingId(t.id)}
-                            data-testid={`button-enter-code-${t.id}`}
-                          >
-                            Enter Code
-                          </Button>
-                        )
-                      ) : t.status === "declined" && t.declineReason ? (
-                        <span className="text-xs text-red-600" data-testid={`text-decline-reason-${t.id}`}>
-                          {t.declineReason}
-                        </span>
-                      ) : t.status === "approved" ? (
-                        <span className="text-xs text-green-600">Completed</span>
-                      ) : t.status === "processing" ? (
-                        <span className="text-xs text-blue-600">Awaiting approval</span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
                     </TableCell>
                   </TableRow>
                 ))}
