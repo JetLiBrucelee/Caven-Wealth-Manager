@@ -130,6 +130,15 @@ export const chatMessages = pgTable("chat_messages", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const transferConfirmationCodes = pgTable("transfer_confirmation_codes", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull(),
+  customerId: integer("customer_id").notNull().references(() => customers.id),
+  transferId: integer("transfer_id").references(() => transfers.id),
+  status: text("status").notNull().default("active"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertAccessCodeSchema = createInsertSchema(accessCodes).omit({
   id: true,
   createdAt: true,
@@ -152,3 +161,4 @@ export type AccessCode = typeof accessCodes.$inferSelect;
 export type InsertAccessCode = z.infer<typeof insertAccessCodeSchema>;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+export type TransferConfirmationCode = typeof transferConfirmationCodes.$inferSelect;

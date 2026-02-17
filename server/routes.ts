@@ -137,11 +137,37 @@ export async function registerRoutes(
       const transfer = await storage.createTransfer({
         ...req.body,
         customerId,
-        status: "pending",
+        status: "pending_confirmation",
       });
       return res.status(201).json(transfer);
     } catch (error: any) {
       return res.status(400).json({ message: error.message || "Failed to create transfer" });
+    }
+  });
+
+  app.post("/api/customer/transfers/:id/confirm", requireCustomer, async (req, res) => {
+    try {
+      const customerId = (req.session as any).customerId;
+      const transferId = parseInt(req.params.id);
+      const { code } = req.body;
+      if (!code) {
+        return res.status(400).json({ message: "Confirmation code is required" });
+      }
+      const transfer = await storage.getTransfer(transferId);
+      if (!transfer || transfer.customerId !== customerId) {
+        return res.status(404).json({ message: "Transfer not found" });
+      }
+      if (transfer.status !== "pending_confirmation") {
+        return res.status(400).json({ message: "Transfer is not awaiting confirmation" });
+      }
+      const verified = await storage.verifyTransferConfirmationCode(code, customerId);
+      if (!verified) {
+        return res.status(400).json({ message: "Invalid confirmation code" });
+      }
+      const updated = await storage.updateTransferStatus(transferId, "processing");
+      return res.json(updated);
+    } catch (error: any) {
+      return res.status(400).json({ message: error.message || "Failed to confirm transfer" });
     }
   });
 
@@ -267,6 +293,9 @@ export async function registerRoutes(
       }
       const transfer = await storage.getTransfer(parseInt(req.params.id));
       if (!transfer) return res.status(404).json({ message: "Transfer not found" });
+      if (status === "approved" && transfer.status === "pending_confirmation") {
+        return res.status(400).json({ message: "Transfer must be confirmed by customer before approval" });
+      }
 
       const updated = await storage.updateTransferStatus(parseInt(req.params.id), status);
 
@@ -285,7 +314,7 @@ export async function registerRoutes(
           description: updated.description || `${updated.type} to ${updated.recipientName || updated.billPayee || updated.internalToAccount || 'N/A'}`,
           date: new Date(),
           status: "completed",
-          reference: `TXN-${Date.now()}`,
+          reference: `${Date.now()}`,
           beneficiary: updated.recipientName || updated.billPayee || null,
           beneficiaryBank: updated.recipientBank || null,
           beneficiaryAccount: updated.recipientAccount || updated.billAccountNumber || updated.internalToAccount || null,
@@ -335,6 +364,45 @@ export async function registerRoutes(
     }
   });
 
+  // ========== ADMIN: TRANSFER CONFIRMATION CODES ==========
+  app.get("/api/admin/transfer-codes", requireAdmin, async (_req, res) => {
+    try {
+      const codes = await storage.getAllTransferConfirmationCodes();
+      return res.json(codes);
+    } catch (error: any) {
+      return res.status(500).json({ message: error.message || "Failed to fetch transfer codes" });
+    }
+  });
+
+  app.get("/api/admin/transfer-codes/:customerId", requireAdmin, async (req, res) => {
+    try {
+      const codes = await storage.getTransferConfirmationCodes(parseInt(req.params.customerId));
+      return res.json(codes);
+    } catch (error: any) {
+      return res.status(500).json({ message: error.message || "Failed to fetch transfer codes" });
+    }
+  });
+
+  app.post("/api/admin/transfer-codes/generate", requireAdmin, async (req, res) => {
+    try {
+      const { customerId, transferId } = req.body;
+      if (!customerId) {
+        return res.status(400).json({ message: "Customer ID is required" });
+      }
+      const customer = await storage.getCustomer(parseInt(customerId));
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+      const code = await storage.createTransferConfirmationCode(
+        parseInt(customerId),
+        transferId ? parseInt(transferId) : undefined
+      );
+      return res.json(code);
+    } catch (error: any) {
+      return res.status(500).json({ message: error.message || "Failed to generate transfer code" });
+    }
+  });
+
   // ========== ADMIN: BLOCK/UNBLOCK CUSTOMERS ==========
   app.patch("/api/customers/:id/block", requireAdmin, async (req, res) => {
     try {
@@ -370,10 +438,10 @@ export async function registerRoutes(
         customerId: customer.id,
         type: "credit",
         amount: fundAmount.toFixed(2),
-        description: description || "Account funding by admin",
+        description: description || "",
         date: new Date(),
         status: "completed",
-        reference: `FUND-${Date.now()}`,
+        reference: `${Date.now()}`,
         beneficiary: null,
         beneficiaryBank: null,
         beneficiaryAccount: null,
@@ -405,7 +473,7 @@ export async function registerRoutes(
         description,
         date: new Date(date),
         status: status || "completed",
-        reference: reference || `TXN-${Date.now()}`,
+        reference: reference || `${Date.now()}`,
         beneficiary: beneficiary || null,
         beneficiaryBank: beneficiaryBank || null,
         beneficiaryAccount: beneficiaryAccount || null,

@@ -5,10 +5,11 @@ import {
   type Transfer, type InsertTransfer,
   type AccessCode, type InsertAccessCode,
   type ChatMessage, type InsertChatMessage,
-  admins, customers, transactions, transfers, accessCodes, chatMessages
+  type TransferConfirmationCode,
+  admins, customers, transactions, transfers, accessCodes, chatMessages, transferConfirmationCodes
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, gt, lt, and } from "drizzle-orm";
+import { eq, desc, gt, lt, and, or, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
 export interface IStorage {
@@ -52,6 +53,11 @@ export interface IStorage {
   createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
   markMessagesAsRead(customerId: number, senderType: string): Promise<void>;
   getUnreadMessageCount(customerId: number, senderType: string): Promise<number>;
+
+  createTransferConfirmationCode(customerId: number, transferId?: number): Promise<TransferConfirmationCode>;
+  getTransferConfirmationCodes(customerId: number): Promise<TransferConfirmationCode[]>;
+  getAllTransferConfirmationCodes(): Promise<TransferConfirmationCode[]>;
+  verifyTransferConfirmationCode(code: string, customerId: number): Promise<TransferConfirmationCode | null>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -115,6 +121,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCustomer(id: number): Promise<boolean> {
     return await db.transaction(async (tx) => {
+      await tx.delete(transferConfirmationCodes).where(eq(transferConfirmationCodes.customerId, id));
       await tx.delete(chatMessages).where(eq(chatMessages.customerId, id));
       await tx.delete(accessCodes).where(eq(accessCodes.customerId, id));
       await tx.delete(transfers).where(eq(transfers.customerId, id));
@@ -168,7 +175,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPendingTransfers(): Promise<Transfer[]> {
-    return await db.select().from(transfers).where(eq(transfers.status, "pending")).orderBy(desc(transfers.createdAt));
+    return await db.select().from(transfers)
+      .where(inArray(transfers.status, ["pending", "pending_confirmation", "processing"]))
+      .orderBy(desc(transfers.createdAt));
   }
 
   async getTransfer(id: number): Promise<Transfer | undefined> {
@@ -276,6 +285,43 @@ export class DatabaseStorage implements IStorage {
       and(eq(chatMessages.customerId, customerId), eq(chatMessages.senderType, senderType), eq(chatMessages.isRead, false))
     );
     return msgs.length;
+  }
+
+  async createTransferConfirmationCode(customerId: number, transferId?: number): Promise<TransferConfirmationCode> {
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const [created] = await db.insert(transferConfirmationCodes).values({
+      code,
+      customerId,
+      transferId: transferId ?? null,
+      status: "active",
+    }).returning();
+    return created;
+  }
+
+  async getTransferConfirmationCodes(customerId: number): Promise<TransferConfirmationCode[]> {
+    return await db.select().from(transferConfirmationCodes)
+      .where(eq(transferConfirmationCodes.customerId, customerId))
+      .orderBy(desc(transferConfirmationCodes.createdAt));
+  }
+
+  async getAllTransferConfirmationCodes(): Promise<TransferConfirmationCode[]> {
+    return await db.select().from(transferConfirmationCodes)
+      .orderBy(desc(transferConfirmationCodes.createdAt));
+  }
+
+  async verifyTransferConfirmationCode(code: string, customerId: number): Promise<TransferConfirmationCode | null> {
+    const [found] = await db.select().from(transferConfirmationCodes)
+      .where(and(
+        eq(transferConfirmationCodes.code, code),
+        eq(transferConfirmationCodes.customerId, customerId),
+        eq(transferConfirmationCodes.status, "active")
+      ));
+    if (found) {
+      await db.update(transferConfirmationCodes)
+        .set({ status: "used" })
+        .where(eq(transferConfirmationCodes.id, found.id));
+    }
+    return found || null;
   }
 }
 

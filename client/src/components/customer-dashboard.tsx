@@ -281,7 +281,7 @@ function DashboardView({ customer, onNavigate }: { customer: CustomerData; onNav
     refetchInterval: 10000,
   });
 
-  const pendingCount = transfers?.filter(t => t.status === "pending").length || 0;
+  const pendingCount = transfers?.filter(t => ["pending", "pending_confirmation", "processing"].includes(t.status)).length || 0;
   const balance = parseFloat(customer.balance);
   const liquidAssets = balance * 0.43;
   const ytdReturn = ((balance * 0.032) / balance) * 100;
@@ -582,7 +582,7 @@ function TransferForm({ type, customer }: { type: string; customer: CustomerData
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/customer/transfers"] });
       queryClient.invalidateQueries({ queryKey: ["/api/customer/me"] });
-      toast({ title: "Transfer submitted successfully", description: "Your transfer is pending approval." });
+      toast({ title: "Transfer submitted successfully", description: "Please enter your confirmation code to proceed." });
       setFormData({});
     },
     onError: (error: any) => {
@@ -664,12 +664,34 @@ function TransferForm({ type, customer }: { type: string; customer: CustomerData
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Beneficiary City</Label>
-                    <Input value={formData.beneficiaryCity || ""} onChange={(e) => update("beneficiaryCity", e.target.value)} required placeholder="City" data-testid="input-beneficiary-city" />
+                    <Label>Beneficiary Zip Code</Label>
+                    <Input value={formData.beneficiaryZipCode || ""} onChange={async (e) => {
+                      const zip = e.target.value.replace(/[^0-9-]/g, "");
+                      update("beneficiaryZipCode", zip);
+                      if (zip.length >= 5) {
+                        try {
+                          const res = await fetch(`/api/zipcode-lookup/${zip}`);
+                          if (res.ok) {
+                            const data = await res.json();
+                            setFormData(prev => ({ ...prev, beneficiaryCity: data.city || prev.beneficiaryCity, beneficiaryState: data.state || prev.beneficiaryState }));
+                          }
+                        } catch {}
+                      }
+                    }} placeholder="Zip / Postal code" data-testid="input-beneficiary-zip" />
                   </div>
                   <div className="space-y-2">
                     <Label>Beneficiary Country</Label>
                     <Input value={formData.beneficiaryCountry || ""} onChange={(e) => update("beneficiaryCountry", e.target.value)} required placeholder="Country" data-testid="input-beneficiary-country" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Beneficiary City</Label>
+                    <Input value={formData.beneficiaryCity || ""} onChange={(e) => update("beneficiaryCity", e.target.value)} required placeholder="City" data-testid="input-beneficiary-city" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Beneficiary State</Label>
+                    <Input value={formData.beneficiaryState || ""} onChange={(e) => update("beneficiaryState", e.target.value)} placeholder="State / Province" data-testid="input-beneficiary-state" />
                   </div>
                 </div>
 
@@ -814,10 +836,44 @@ function TransferForm({ type, customer }: { type: string; customer: CustomerData
 }
 
 function TransferStatusView() {
+  const { toast } = useToast();
+  const [confirmingId, setConfirmingId] = useState<number | null>(null);
+  const [confirmCode, setConfirmCode] = useState("");
   const { data: transfers, isLoading } = useQuery<Transfer[]>({
     queryKey: ["/api/customer/transfers"],
     refetchInterval: 3000,
   });
+
+  const confirmMutation = useMutation({
+    mutationFn: async ({ transferId, code }: { transferId: number; code: string }) => {
+      const res = await apiRequest("POST", `/api/customer/transfers/${transferId}/confirm`, { code });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customer/transfers"] });
+      setConfirmingId(null);
+      setConfirmCode("");
+      toast({ title: "Transfer confirmed", description: "Your transfer is now being processed for approval." });
+    },
+    onError: (error: any) => {
+      toast({ title: "Confirmation failed", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const getTransferStatusBadge = (status: string) => {
+    switch (status) {
+      case "pending_confirmation":
+        return <Badge variant="secondary" className="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">Awaiting Confirmation</Badge>;
+      case "processing":
+        return <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">Processing</Badge>;
+      case "approved":
+        return <Badge variant="default" className="capitalize">Approved</Badge>;
+      case "rejected":
+        return <Badge variant="destructive" className="capitalize">Rejected</Badge>;
+      default:
+        return <Badge variant="secondary" className="capitalize">{status}</Badge>;
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -837,6 +893,7 @@ function TransferStatusView() {
                   <TableHead>Recipient</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -846,14 +903,51 @@ function TransferStatusView() {
                     <TableCell className="text-sm capitalize">{t.type.replace(/_/g, " ")}</TableCell>
                     <TableCell className="text-sm">{t.recipientName || t.billPayee || t.internalToAccount || "-"}</TableCell>
                     <TableCell className="text-right font-semibold text-red-600">-{formatAmount(t.amount)}</TableCell>
+                    <TableCell data-testid={`badge-transfer-status-${t.id}`}>
+                      {getTransferStatusBadge(t.status)}
+                    </TableCell>
                     <TableCell>
-                      <Badge
-                        variant={t.status === "approved" ? "default" : t.status === "rejected" ? "destructive" : "secondary"}
-                        className="capitalize"
-                        data-testid={`badge-transfer-status-${t.id}`}
-                      >
-                        {t.status}
-                      </Badge>
+                      {t.status === "pending_confirmation" ? (
+                        confirmingId === t.id ? (
+                          <div className="flex items-center gap-2">
+                            <Input
+                              placeholder="Enter code"
+                              value={confirmCode}
+                              onChange={(e) => setConfirmCode(e.target.value)}
+                              className="w-32 h-8 text-sm"
+                              data-testid={`input-confirm-code-${t.id}`}
+                            />
+                            <Button
+                              size="sm"
+                              onClick={() => confirmMutation.mutate({ transferId: t.id, code: confirmCode })}
+                              disabled={!confirmCode || confirmMutation.isPending}
+                              data-testid={`button-submit-code-${t.id}`}
+                            >
+                              {confirmMutation.isPending ? "..." : "Confirm"}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => { setConfirmingId(null); setConfirmCode(""); }}
+                              data-testid={`button-cancel-confirm-${t.id}`}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-orange-700 border-orange-300 hover:bg-orange-50"
+                            onClick={() => setConfirmingId(t.id)}
+                            data-testid={`button-enter-code-${t.id}`}
+                          >
+                            Enter Code
+                          </Button>
+                        )
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

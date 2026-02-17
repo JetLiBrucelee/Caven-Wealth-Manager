@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -7,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle2, XCircle, Clock, AlertTriangle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { CheckCircle2, XCircle, Clock, AlertTriangle, Key, Copy, Loader2 } from "lucide-react";
 
 interface Transfer {
   id: number;
@@ -46,6 +48,9 @@ const formatAmount = (amount: string) => {
 
 export default function AdminPendingTransfers() {
   const { toast } = useToast();
+  const [codeDialogOpen, setCodeDialogOpen] = useState(false);
+  const [generatedCode, setGeneratedCode] = useState<string | null>(null);
+  const [codeCustomerId, setCodeCustomerId] = useState<number | null>(null);
 
   const { data: transfers, isLoading: transfersLoading } = useQuery<Transfer[]>({
     queryKey: ["/api/transfers"],
@@ -72,6 +77,21 @@ export default function AdminPendingTransfers() {
     },
   });
 
+  const generateCodeMutation = useMutation({
+    mutationFn: async ({ customerId, transferId }: { customerId: number; transferId?: number }) => {
+      const res = await apiRequest("POST", "/api/admin/transfer-codes/generate", { customerId, transferId });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setGeneratedCode(data.code);
+      setCodeDialogOpen(true);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/transfer-codes"] });
+    },
+    onError: (error: any) => {
+      toast({ title: "Failed to generate code", description: error.message, variant: "destructive" });
+    },
+  });
+
   const getCustomerName = (customerId: number) => {
     const customer = customers?.find((c) => c.id === customerId);
     return customer ? `${customer.firstName} ${customer.lastName}` : `Customer #${customerId}`;
@@ -84,7 +104,29 @@ export default function AdminPendingTransfers() {
     return "—";
   };
 
-  const pendingTransfers = transfers?.filter(t => t.status === "pending") || [];
+  const pendingConfirmation = transfers?.filter(t => t.status === "pending_confirmation") || [];
+  const processingTransfers = transfers?.filter(t => t.status === "processing") || [];
+  const actionableTransfers = [...pendingConfirmation, ...processingTransfers];
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: "Copied!", description: "Code copied to clipboard" });
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "pending_confirmation":
+        return <Badge variant="secondary" className="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">Awaiting OTP</Badge>;
+      case "processing":
+        return <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">Confirmed</Badge>;
+      case "approved":
+        return <Badge variant="default" className="capitalize">Approved</Badge>;
+      case "rejected":
+        return <Badge variant="destructive" className="capitalize">Rejected</Badge>;
+      default:
+        return <Badge variant="secondary" className="capitalize">{status}</Badge>;
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -93,12 +135,12 @@ export default function AdminPendingTransfers() {
         <p className="text-muted-foreground text-sm mt-1">Review and manage customer transfer requests</p>
       </div>
 
-      {pendingTransfers.length > 0 && (
+      {actionableTransfers.length > 0 && (
         <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-800">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2 text-amber-700 dark:text-amber-400">
               <AlertTriangle className="w-5 h-5" />
-              Pending Transfers ({pendingTransfers.length})
+              Pending Transfers ({actionableTransfers.length})
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -110,32 +152,50 @@ export default function AdminPendingTransfers() {
                   <TableHead>Type</TableHead>
                   <TableHead>Recipient</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
-                  <TableHead>Description</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pendingTransfers.map((t) => (
+                {actionableTransfers.map((t) => (
                   <TableRow key={t.id} data-testid={`row-pending-transfer-${t.id}`}>
                     <TableCell className="text-sm">{format(new Date(t.createdAt), "MMM d, yyyy h:mm a")}</TableCell>
                     <TableCell className="text-sm font-medium">{getCustomerName(t.customerId)}</TableCell>
                     <TableCell className="text-sm capitalize">{t.type.replace(/_/g, " ")}</TableCell>
                     <TableCell className="text-sm">{getRecipientInfo(t)}</TableCell>
                     <TableCell className="text-right font-semibold">{formatAmount(t.amount)}</TableCell>
-                    <TableCell className="text-sm max-w-xs truncate">{t.description || "—"}</TableCell>
+                    <TableCell>{getStatusBadge(t.status)}</TableCell>
                     <TableCell>
                       <div className="flex items-center justify-center gap-1">
-                        <Button
-                          size="sm"
-                          variant="default"
-                          className="bg-green-600 hover:bg-green-700 text-white"
-                          onClick={() => statusMutation.mutate({ id: t.id, status: "approved" })}
-                          disabled={statusMutation.isPending}
-                          data-testid={`button-approve-${t.id}`}
-                        >
-                          <CheckCircle2 className="w-4 h-4 mr-1" />
-                          Approve
-                        </Button>
+                        {t.status === "pending_confirmation" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                            onClick={() => {
+                              setCodeCustomerId(t.customerId);
+                              generateCodeMutation.mutate({ customerId: t.customerId, transferId: t.id });
+                            }}
+                            disabled={generateCodeMutation.isPending}
+                            data-testid={`button-generate-code-${t.id}`}
+                          >
+                            {generateCodeMutation.isPending ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Key className="w-4 h-4 mr-1" />}
+                            Generate OTP
+                          </Button>
+                        )}
+                        {t.status === "processing" && (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                            onClick={() => statusMutation.mutate({ id: t.id, status: "approved" })}
+                            disabled={statusMutation.isPending}
+                            data-testid={`button-approve-${t.id}`}
+                          >
+                            <CheckCircle2 className="w-4 h-4 mr-1" />
+                            Approve
+                          </Button>
+                        )}
                         <Button
                           size="sm"
                           variant="destructive"
@@ -193,16 +253,34 @@ export default function AdminPendingTransfers() {
                     <TableCell className="text-sm capitalize">{t.type.replace(/_/g, " ")}</TableCell>
                     <TableCell className="text-sm">{getRecipientInfo(t)}</TableCell>
                     <TableCell className="text-right font-semibold">{formatAmount(t.amount)}</TableCell>
+                    <TableCell>{getStatusBadge(t.status)}</TableCell>
                     <TableCell>
-                      <Badge
-                        variant={t.status === "approved" ? "default" : t.status === "rejected" ? "destructive" : "secondary"}
-                        className="capitalize"
-                      >
-                        {t.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {t.status === "pending" ? (
+                      {t.status === "pending_confirmation" ? (
+                        <div className="flex items-center justify-center gap-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                            onClick={() => {
+                              setCodeCustomerId(t.customerId);
+                              generateCodeMutation.mutate({ customerId: t.customerId, transferId: t.id });
+                            }}
+                            disabled={generateCodeMutation.isPending}
+                            data-testid={`button-generate-code-all-${t.id}`}
+                          >
+                            <Key className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => statusMutation.mutate({ id: t.id, status: "rejected" })}
+                            disabled={statusMutation.isPending}
+                            data-testid={`button-reject-all-${t.id}`}
+                          >
+                            <XCircle className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      ) : t.status === "processing" ? (
                         <div className="flex items-center justify-center gap-1">
                           <Button
                             size="sm"
@@ -235,6 +313,41 @@ export default function AdminPendingTransfers() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={codeDialogOpen} onOpenChange={setCodeDialogOpen}>
+        <DialogContent className="sm:max-w-md" data-testid="dialog-transfer-code">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Key className="w-5 h-5 text-orange-600" />
+              Transfer Confirmation Code
+            </DialogTitle>
+            <DialogDescription>
+              Share this code with the customer to confirm their transfer.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {generatedCode && (
+              <div className="flex items-center justify-center gap-3 p-6 bg-muted/50 rounded-lg border">
+                <span className="text-3xl font-mono font-bold tracking-[0.3em]" data-testid="text-generated-code">{generatedCode}</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => copyToClipboard(generatedCode)}
+                  data-testid="button-copy-code"
+                >
+                  <Copy className="w-5 h-5" />
+                </Button>
+              </div>
+            )}
+            <p className="text-sm text-muted-foreground text-center">
+              Customer: <span className="font-medium">{codeCustomerId ? getCustomerName(codeCustomerId) : ""}</span>
+            </p>
+            <p className="text-xs text-muted-foreground text-center">
+              This code expires in 30 minutes and can only be used once.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
