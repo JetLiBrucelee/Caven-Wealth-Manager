@@ -53,6 +53,7 @@ interface CustomerFormData {
   status: string;
   hasDebitCard: boolean;
   hasCreditCard: boolean;
+  memberSince: string;
 }
 
 const emptyForm: CustomerFormData = {
@@ -74,6 +75,7 @@ const emptyForm: CustomerFormData = {
   status: "active",
   hasDebitCard: false,
   hasCreditCard: false,
+  memberSince: "",
 };
 
 export default function AdminCustomers() {
@@ -274,6 +276,7 @@ export default function AdminCustomers() {
       status: customer.status,
       hasDebitCard: customer.hasDebitCard ?? false,
       hasCreditCard: customer.hasCreditCard ?? false,
+      memberSince: customer.memberSince ? new Date(customer.memberSince).toISOString().split("T")[0] : "",
     });
     setDialogOpen(true);
   }
@@ -718,6 +721,17 @@ export default function AdminCustomers() {
                   />
                   <span className="text-sm font-medium">Issue Credit Card</span>
                 </label>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="memberSince">Member Since</Label>
+                <Input
+                  id="memberSince"
+                  type="date"
+                  value={formData.memberSince}
+                  onChange={(e) => setFormData({ ...formData, memberSince: e.target.value })}
+                  data-testid="input-member-since"
+                />
+                <p className="text-xs text-muted-foreground">Set a custom join date for the customer</p>
               </div>
             </div>
 

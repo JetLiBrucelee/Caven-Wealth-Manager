@@ -57,6 +57,7 @@ interface CustomerData {
   status: string;
   hasDebitCard: boolean;
   hasCreditCard: boolean;
+  memberSince: string | null;
   createdAt: string;
 }
 
@@ -1261,7 +1262,7 @@ function ProfileView({ customer }: { customer: CustomerData }) {
           <InfoRow label="Account Type" value={customer.accountType.charAt(0).toUpperCase() + customer.accountType.slice(1)} />
           <InfoRow label="Account Status" value={customer.status.charAt(0).toUpperCase() + customer.status.slice(1)} />
           <InfoRow label="Current Balance" value={formatAmount(customer.balance)} />
-          <InfoRow label="Member Since" value={customer.createdAt ? format(new Date(customer.createdAt), "MMMM d, yyyy") : null} />
+          <InfoRow label="Member Since" value={customer.memberSince ? format(new Date(customer.memberSince), "MMMM d, yyyy") : (customer.createdAt ? format(new Date(customer.createdAt), "MMMM d, yyyy") : null)} />
         </CardContent>
       </Card>
     </div>

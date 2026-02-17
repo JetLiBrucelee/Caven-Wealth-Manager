@@ -42,6 +42,7 @@ export const customers = pgTable("customers", {
   status: text("status").notNull().default("active"),
   hasDebitCard: boolean("has_debit_card").notNull().default(false),
   hasCreditCard: boolean("has_credit_card").notNull().default(false),
+  memberSince: timestamp("member_since").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
