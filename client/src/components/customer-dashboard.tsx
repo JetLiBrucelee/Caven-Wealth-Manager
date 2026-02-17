@@ -34,6 +34,7 @@ import {
   TrendingUp,
   TrendingDown,
   ArrowUp,
+  KeyRound,
 } from "lucide-react";
 
 interface CustomerData {
@@ -577,17 +578,42 @@ function StatusIcon({ status }: { status: string }) {
 function TransferForm({ type, customer }: { type: string; customer: CustomerData }) {
   const { toast } = useToast();
   const [formData, setFormData] = useState<Record<string, string>>({});
+  const [pendingTransferId, setPendingTransferId] = useState<number | null>(null);
+  const [otpCode, setOtpCode] = useState("");
 
   const mutation = useMutation({
-    mutationFn: (data: any) => apiRequest("POST", "/api/customer/transfers", data),
-    onSuccess: () => {
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/customer/transfers", data);
+      return res.json();
+    },
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/customer/transfers"] });
       queryClient.invalidateQueries({ queryKey: ["/api/customer/me"] });
-      toast({ title: "Transfer submitted successfully", description: "Please enter your confirmation code to proceed." });
-      setFormData({});
+      if (data && data.id) {
+        setPendingTransferId(data.id);
+        setOtpCode("");
+      }
     },
     onError: (error: any) => {
       toast({ title: "Transfer failed", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const confirmMutation = useMutation({
+    mutationFn: async ({ transferId, code }: { transferId: number; code: string }) => {
+      const res = await apiRequest("POST", `/api/customer/transfers/${transferId}/confirm`, { code });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customer/transfers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/customer/me"] });
+      setPendingTransferId(null);
+      setOtpCode("");
+      setFormData({});
+      toast({ title: "Transfer confirmed", description: "Your transfer is now being processed for approval." });
+    },
+    onError: (error: any) => {
+      toast({ title: "Confirmation failed", description: error.message, variant: "destructive" });
     },
   });
 
@@ -826,10 +852,62 @@ function TransferForm({ type, customer }: { type: string; customer: CustomerData
 
             <Separator />
 
-            <Button type="submit" className="w-full" disabled={mutation.isPending} data-testid="button-submit-transfer">
+            <Button type="submit" className="w-full" disabled={mutation.isPending || pendingTransferId !== null} data-testid="button-submit-transfer">
               {mutation.isPending ? "Processing..." : `Submit ${titles[type]}`}
             </Button>
           </form>
+
+          {pendingTransferId !== null && (
+            <div className="mt-6 border-t pt-6" data-testid="otp-entry-panel">
+              <Card className="border-orange-200 bg-orange-50/50 dark:bg-orange-950/20 dark:border-orange-800">
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/50 flex items-center justify-center shrink-0">
+                      <KeyRound className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-orange-800 dark:text-orange-300">OTP Confirmation Required</h3>
+                      <p className="text-sm text-orange-700/80 dark:text-orange-400/80 mt-1">
+                        Your transfer has been submitted. Please enter the 6-digit confirmation code provided by your account manager to proceed.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Input
+                      placeholder="Enter 6-digit code"
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value)}
+                      className="flex-1 text-center text-lg font-mono tracking-widest"
+                      maxLength={6}
+                      data-testid="input-otp-code"
+                    />
+                    <Button
+                      onClick={() => confirmMutation.mutate({ transferId: pendingTransferId, code: otpCode })}
+                      disabled={!otpCode || otpCode.length < 6 || confirmMutation.isPending}
+                      className="bg-orange-600 hover:bg-orange-700 text-white"
+                      data-testid="button-confirm-otp"
+                    >
+                      {confirmMutation.isPending ? "Verifying..." : "Confirm"}
+                    </Button>
+                  </div>
+                  <div className="flex items-center justify-between mt-3">
+                    <p className="text-xs text-orange-600/60 dark:text-orange-400/60">
+                      The code expires in 30 minutes.
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => { setPendingTransferId(null); setOtpCode(""); }}
+                      data-testid="button-cancel-otp"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

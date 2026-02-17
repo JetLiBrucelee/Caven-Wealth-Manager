@@ -468,21 +468,60 @@ export async function registerRoutes(
     }
   });
 
+  // ========== ADMIN: BALANCE ==========
+  app.get("/api/admin/balance", requireAdmin, async (req, res) => {
+    try {
+      const admin = await storage.getAdmin((req.session as any).adminId);
+      if (!admin) return res.status(404).json({ message: "Admin not found" });
+      return res.json({ balance: admin.balance });
+    } catch (error: any) {
+      return res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/admin/topup", requireAdmin, async (req, res) => {
+    try {
+      const { amount } = req.body;
+      const topupAmount = parseFloat(amount);
+      if (isNaN(topupAmount) || topupAmount <= 0) {
+        return res.status(400).json({ message: "Valid amount required" });
+      }
+      const admin = await storage.getAdmin((req.session as any).adminId);
+      if (!admin) return res.status(404).json({ message: "Admin not found" });
+      const currentBalance = parseFloat(admin.balance);
+      const newBalance = (currentBalance + topupAmount).toFixed(2);
+      await storage.updateAdminBalance(admin.id, newBalance);
+      return res.json({ balance: newBalance });
+    } catch (error: any) {
+      return res.status(400).json({ message: error.message });
+    }
+  });
+
   // ========== ADMIN: FUND USER ==========
   app.post("/api/customers/:id/fund", requireAdmin, async (req, res) => {
     try {
       const { amount, description } = req.body;
-      if (!amount || parseFloat(amount) <= 0) {
+      const fundAmount = parseFloat(amount);
+      if (isNaN(fundAmount) || fundAmount <= 0) {
         return res.status(400).json({ message: "Valid amount required" });
       }
+
+      const admin = await storage.getAdmin((req.session as any).adminId);
+      if (!admin) return res.status(404).json({ message: "Admin not found" });
+      const adminBalance = parseFloat(admin.balance);
+      if (fundAmount > adminBalance) {
+        return res.status(400).json({ message: "Insufficient admin balance. Please top up your balance first." });
+      }
+
       const customer = await storage.getCustomer(parseInt(req.params.id));
       if (!customer) return res.status(404).json({ message: "Customer not found" });
 
       const currentBalance = parseFloat(customer.balance);
-      const fundAmount = parseFloat(amount);
       const newBalance = (currentBalance + fundAmount).toFixed(2);
+      const newAdminBalance = (adminBalance - fundAmount).toFixed(2);
 
       await storage.updateCustomer(customer.id, { balance: newBalance });
+      await storage.updateAdminBalance(admin.id, newAdminBalance);
 
       await storage.createTransaction({
         customerId: customer.id,

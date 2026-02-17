@@ -166,6 +166,7 @@ export default function AdminCustomers() {
       apiRequest("POST", `/api/customers/${data.id}/fund`, { amount: data.amount, description: data.description }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/balance"] });
       toast({ title: "Account funded successfully" });
       setFundDialogOpen(false);
       setFundingCustomer(null);

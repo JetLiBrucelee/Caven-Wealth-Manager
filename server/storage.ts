@@ -16,6 +16,7 @@ export interface IStorage {
   getAdmin(id: number): Promise<Admin | undefined>;
   getAdminByUsername(username: string): Promise<Admin | undefined>;
   createAdmin(admin: InsertAdmin): Promise<Admin>;
+  updateAdminBalance(id: number, balance: string): Promise<Admin | undefined>;
   validateAdminPassword(username: string, password: string): Promise<Admin | null>;
 
   getCustomers(): Promise<Customer[]>;
@@ -69,6 +70,11 @@ export class DatabaseStorage implements IStorage {
   async getAdminByUsername(username: string): Promise<Admin | undefined> {
     const [admin] = await db.select().from(admins).where(eq(admins.username, username));
     return admin;
+  }
+
+  async updateAdminBalance(id: number, balance: string): Promise<Admin | undefined> {
+    const [updated] = await db.update(admins).set({ balance }).where(eq(admins.id, id)).returning();
+    return updated;
   }
 
   async createAdmin(admin: InsertAdmin): Promise<Admin> {

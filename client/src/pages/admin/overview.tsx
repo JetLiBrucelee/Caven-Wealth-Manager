@@ -1,8 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
   Users,
   ArrowLeftRight,
@@ -14,6 +20,8 @@ import {
   History,
   MessageSquare,
   Activity,
+  Plus,
+  Loader2,
 } from "lucide-react";
 import type { Customer, Transaction, AccessCode } from "@shared/schema";
 
@@ -58,6 +66,10 @@ const quickActions = [
 ];
 
 export default function AdminOverview() {
+  const { toast } = useToast();
+  const [topupDialogOpen, setTopupDialogOpen] = useState(false);
+  const [topupAmount, setTopupAmount] = useState("");
+
   const { data: customers, isLoading: customersLoading } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
   });
@@ -68,6 +80,27 @@ export default function AdminOverview() {
 
   const { data: accessCodes, isLoading: codesLoading } = useQuery<AccessCode[]>({
     queryKey: ["/api/access-codes"],
+  });
+
+  const { data: balanceData, isLoading: balanceLoading } = useQuery<{ balance: string }>({
+    queryKey: ["/api/admin/balance"],
+    refetchInterval: 5000,
+  });
+
+  const topupMutation = useMutation({
+    mutationFn: async (amount: string) => {
+      const res = await apiRequest("POST", "/api/admin/topup", { amount });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/balance"] });
+      toast({ title: "Balance topped up successfully" });
+      setTopupDialogOpen(false);
+      setTopupAmount("");
+    },
+    onError: (error: any) => {
+      toast({ title: "Top up failed", description: error.message, variant: "destructive" });
+    },
   });
 
   const isLoading = customersLoading || transactionsLoading || codesLoading;
@@ -81,7 +114,7 @@ export default function AdminOverview() {
 
   const recentTransactions = transactions?.slice(0, 10) ?? [];
 
-  const adminBalance = 500000000000;
+  const adminBalance = balanceData ? (parseFloat(balanceData.balance) || 0) : 0;
 
   const stats = [
     {
@@ -114,6 +147,15 @@ export default function AdminOverview() {
     },
   ];
 
+  const handleTopup = () => {
+    const amount = parseFloat(topupAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast({ title: "Please enter a valid amount", variant: "destructive" });
+      return;
+    }
+    topupMutation.mutate(topupAmount);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -132,14 +174,24 @@ export default function AdminOverview() {
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
               <p className="text-white/60 text-sm font-medium uppercase tracking-wider mb-2">Admin Account Balance</p>
-              <p className="text-4xl sm:text-5xl font-bold tracking-tight" data-testid="text-admin-balance" style={{ fontVariantNumeric: "tabular-nums" }}>
-                ${adminBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </p>
+              {balanceLoading ? (
+                <Skeleton className="h-12 w-64 bg-white/10" />
+              ) : (
+                <p className="text-4xl sm:text-5xl font-bold tracking-tight" data-testid="text-admin-balance" style={{ fontVariantNumeric: "tabular-nums" }}>
+                  ${adminBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              )}
               <p className="text-white/40 text-xs mt-2">Available for customer fund allocation</p>
             </div>
-            <div className="hidden sm:flex w-16 h-16 rounded-2xl bg-white/10 items-center justify-center shrink-0">
-              <DollarSign className="w-8 h-8 text-white/80" />
-            </div>
+            <Button
+              variant="outline"
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
+              onClick={() => { setTopupAmount(""); setTopupDialogOpen(true); }}
+              data-testid="button-topup-balance"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Top Up Balance
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -275,6 +327,50 @@ export default function AdminOverview() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={topupDialogOpen} onOpenChange={setTopupDialogOpen}>
+        <DialogContent className="sm:max-w-md" data-testid="dialog-topup-balance">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="w-5 h-5 text-green-600" />
+              Top Up Admin Balance
+            </DialogTitle>
+            <DialogDescription>
+              Add funds to the admin account balance for customer allocation.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Amount ($)</label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0.01"
+                placeholder="Enter amount to add"
+                value={topupAmount}
+                onChange={(e) => setTopupAmount(e.target.value)}
+                data-testid="input-topup-amount"
+              />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Current balance: <span className="font-semibold">${adminBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </p>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setTopupDialogOpen(false)} data-testid="button-cancel-topup">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleTopup}
+              disabled={!topupAmount || parseFloat(topupAmount) <= 0 || topupMutation.isPending}
+              data-testid="button-confirm-topup"
+            >
+              {topupMutation.isPending ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />}
+              Add Funds
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
