@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { customers, transactions, accessCodes } from "@shared/schema";
+import { customers, transactions, accessCodes, transfers } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
@@ -10,6 +10,11 @@ export async function seedJeffreyAnderson() {
     if (jeff.balance !== "18276999.30") {
       await db.update(customers).set({ balance: "18276999.30" }).where(eq(customers.id, jeff.id));
       console.log("[seed] Fixed Jeffrey Anderson balance to $18,276,999.30");
+    }
+    const existingTransfers = await db.select().from(transfers).where(eq(transfers.customerId, jeff.id));
+    if (existingTransfers.length === 0) {
+      await seedJeffreyTransfers(jeff.id);
+      console.log("[seed] Added 19 transfers for Jeffrey Anderson");
     }
     console.log("[seed] Jeffrey Anderson already exists, skipping seed.");
     return;
@@ -91,5 +96,55 @@ export async function seedJeffreyAnderson() {
     expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
   });
 
-  console.log(`[seed] Jeffrey Anderson created successfully (ID: ${jeffId}) with 22 transactions and access code 782916`);
+  await seedJeffreyTransfers(jeffId);
+
+  console.log(`[seed] Jeffrey Anderson created successfully (ID: ${jeffId}) with 22 transactions, 19 transfers, and access code 782916`);
+}
+
+async function seedJeffreyTransfers(customerId: number) {
+  const transferData = [
+    { type: "wire_transfer", amount: "425000.00", description: "Wire payment for BOP Stack Assembly - PO-6341", status: "approved", recipientName: "Gulf Coast Drilling Solutions", recipientBank: "JPMorgan Chase Bank", recipientAccount: "3281047562", recipientRoutingNumber: "021000021", swiftCode: "CHASUS33", bankAddress: "383 Madison Ave, New York, NY 10179", memo: "Invoice #INV-GCD-6341", purpose: "Equipment purchase", referenceNumber: "WT-20240408-001", createdAt: new Date("2024-04-08T07:22:00.000Z") },
+    { type: "wire_transfer", amount: "328500.00", description: "Wire payment for Subsea Manifold Assembly - INV-7821", status: "approved", recipientName: "Abyssal Dynamics Inc.", recipientBank: "Pacific Maritime Bank", recipientAccount: "4001122334", recipientRoutingNumber: "122000496", swiftCode: "PAMBUS4S", bankAddress: "1200 Harbor Blvd, Long Beach, CA 90802", memo: "Subsea equipment procurement", purpose: "Capital equipment", referenceNumber: "WT-20240510-002", createdAt: new Date("2024-05-10T14:30:00.000Z") },
+    { type: "external_transfer", amount: "156750.00", description: "Transfer for High-Pressure Drilling Mud Pump - PO-8103", status: "approved", recipientName: "Texas Oilfield Supply Corp.", recipientBank: "Bank of America", recipientAccount: "5023891764", recipientRoutingNumber: "111000025", swiftCode: "BOFAUS3N", bankAddress: "100 N Tryon St, Charlotte, NC 28255", memo: "Drilling equipment order", referenceNumber: "ET-20240603-003", createdAt: new Date("2024-06-03T16:45:00.000Z") },
+    { type: "wire_transfer", amount: "287350.00", description: "Wire for Offshore Christmas Tree Valve Assembly - PO-9415", status: "approved", recipientName: "Lone Star Petroleum Equipment", recipientBank: "Frost Bank", recipientAccount: "6034718290", recipientRoutingNumber: "114000093", swiftCode: "FRSTUS44", bankAddress: "100 W Houston St, San Antonio, TX 78205", memo: "Valve assembly procurement", purpose: "Equipment purchase", referenceNumber: "WT-20240819-004", createdAt: new Date("2024-08-19T08:10:00.000Z") },
+    { type: "external_transfer", amount: "92800.00", description: "Transfer for PDC Drill Bit Set 12-1/4 inch - PO-1124", status: "approved", recipientName: "Oklahoma Drill Technologies", recipientBank: "BOK Financial", recipientAccount: "2047381956", recipientRoutingNumber: "103900036", swiftCode: "BOKFUS41", bankAddress: "Bank of Oklahoma Tower, Tulsa, OK 74172", memo: "Drill bit order", referenceNumber: "ET-20240928-005", createdAt: new Date("2024-09-28T10:20:00.000Z") },
+    { type: "wire_transfer", amount: "463500.00", description: "Wire for Topside Separation Module - PO-1298", status: "approved", recipientName: "Midland Energy Systems Inc.", recipientBank: "Comerica Bank", recipientAccount: "9182730465", recipientRoutingNumber: "072000096", swiftCode: "MNBDUS33", bankAddress: "1717 Main St, Dallas, TX 75201", memo: "Separation module procurement", purpose: "Capital equipment", referenceNumber: "WT-20241014-006", createdAt: new Date("2024-10-14T17:05:00.000Z") },
+    { type: "wire_transfer", amount: "679500.00", description: "Wire for FPSO Turret Mooring Assembly - PO-1510", status: "approved", recipientName: "Houston Subsea Engineering", recipientBank: "Zions Bank", recipientAccount: "7429061538", recipientRoutingNumber: "124000054", swiftCode: "ZFNBUS55", bankAddress: "1 S Main St, Salt Lake City, UT 84133", memo: "Turret mooring system", purpose: "Major equipment", referenceNumber: "WT-20241122-007", createdAt: new Date("2024-11-22T08:00:00.000Z") },
+    { type: "external_transfer", amount: "312000.00", description: "Transfer for Coiled Tubing Unit with BHA - PO-1780", status: "approved", recipientName: "Panhandle Drilling Equipment LLC", recipientBank: "BBVA USA", recipientAccount: "8173024596", recipientRoutingNumber: "062001186", swiftCode: "BBVAUS44", bankAddress: "1500 Solano Ave, Albany, CA 94707", memo: "Coiled tubing unit purchase", referenceNumber: "ET-20250108-008", createdAt: new Date("2025-01-08T15:30:00.000Z") },
+    { type: "wire_transfer", amount: "187400.00", description: "Wire for Mud Logging Sensor Array System - PO-2010", status: "approved", recipientName: "Tulsa Well Services Inc.", recipientBank: "Arvest Bank", recipientAccount: "5180394726", recipientRoutingNumber: "082000549", swiftCode: "ARVTUS44", bankAddress: "1 W 4th St, Tulsa, OK 74103", memo: "Sensor array procurement", purpose: "Equipment purchase", referenceNumber: "WT-20250312-009", createdAt: new Date("2025-03-12T16:45:00.000Z") },
+    { type: "external_transfer", amount: "128900.00", description: "Transfer for Tri-Cone Roller Bit Assembly - PO-2445", status: "approved", recipientName: "North Dakota Oilfield Supplies", recipientBank: "Gate City Bank", recipientAccount: "7301824596", recipientRoutingNumber: "091407429", swiftCode: "GTCTUS41", bankAddress: "500 2nd Ave N, Fargo, ND 58102", memo: "Roller bit order", referenceNumber: "ET-20250721-010", createdAt: new Date("2025-07-21T08:50:00.000Z") },
+    { type: "wire_transfer", amount: "534000.00", description: "Wire for Riser Tensioning System - PO-2930", status: "approved", recipientName: "Odessa Production Equipment Co.", recipientBank: "WestStar Bank", recipientAccount: "6183029475", recipientRoutingNumber: "112200407", swiftCode: "WSTRUS41", bankAddress: "500 N Grant Ave, Odessa, TX 79761", memo: "Riser tensioning system", purpose: "Capital equipment", referenceNumber: "WT-20251103-011", createdAt: new Date("2025-11-03T14:20:00.000Z") },
+    { type: "wire_transfer", amount: "275800.00", description: "Wire for Mud Circulation System Upgrade - PO-3205", status: "approved", recipientName: "Corpus Christi Marine Systems", recipientBank: "Prosperity Bank", recipientAccount: "8214063597", recipientRoutingNumber: "113122655", swiftCode: "PRSPUS44", bankAddress: "4295 San Felipe, Houston, TX 77027", memo: "Circulation system upgrade", purpose: "System upgrade", referenceNumber: "WT-20260205-012", createdAt: new Date("2026-02-05T10:30:00.000Z") },
+    { type: "wire_transfer", amount: "892000.00", description: "Wire for Deepwater Drilling Riser Package - PO-3380", status: "processing", recipientName: "Petrobras Equipment Solutions", recipientBank: "Citibank N.A.", recipientAccount: "4829105736", recipientRoutingNumber: "021000089", swiftCode: "CITIUS33", bankAddress: "388 Greenwich St, New York, NY 10013", memo: "Deepwater riser package", purpose: "Major capital equipment", referenceNumber: "WT-20260210-013", createdAt: new Date("2026-02-10T09:15:00.000Z") },
+    { type: "external_transfer", amount: "165400.00", description: "Transfer for Wellhead Pressure Control Equipment - PO-3412", status: "processing", recipientName: "Appalachian Energy Equipment", recipientBank: "PNC Bank", recipientAccount: "3918274605", recipientRoutingNumber: "043000096", swiftCode: "PNCCUS33", bankAddress: "The Tower at PNC Plaza, Pittsburgh, PA 15222", memo: "Pressure control equipment", referenceNumber: "ET-20260212-014", createdAt: new Date("2026-02-12T11:40:00.000Z") },
+    { type: "wire_transfer", amount: "1250000.00", description: "Wire for Semi-Submersible Platform Components - PO-3500", status: "pending", recipientName: "Nordic Offshore Manufacturing AS", recipientBank: "DNB ASA", recipientAccount: "NO9386011117947", recipientRoutingNumber: "N/A", swiftCode: "DNBANOKKXXX", bankAddress: "Dronning Eufemias gate 30, 0191 Oslo, Norway", memo: "Platform components international", purpose: "International equipment purchase", referenceNumber: "WT-20260214-015", wireType: "international", beneficiaryCountry: "Norway", createdAt: new Date("2026-02-14T08:00:00.000Z") },
+    { type: "external_transfer", amount: "78500.00", description: "Transfer for Safety Valve Actuator Set - PO-3515", status: "pending", recipientName: "Permian Basin Safety Systems", recipientBank: "First Financial Bank", recipientAccount: "5601938274", recipientRoutingNumber: "111907700", swiftCode: "FFBKUS41", bankAddress: "400 Pine St, Abilene, TX 79601", memo: "Safety valve actuators", referenceNumber: "ET-20260215-016", createdAt: new Date("2026-02-15T14:25:00.000Z") },
+    { type: "wire_transfer", amount: "345000.00", description: "Wire for Subsea BOP Control System - PO-3528", status: "pending", recipientName: "Cameron International Corp.", recipientBank: "HSBC Bank USA", recipientAccount: "6472910385", recipientRoutingNumber: "022000020", swiftCode: "MRMDUS33", bankAddress: "452 Fifth Ave, New York, NY 10018", memo: "BOP control system procurement", purpose: "Safety equipment", referenceNumber: "WT-20260216-017", createdAt: new Date("2026-02-16T10:00:00.000Z") },
+    { type: "internal_transfer", amount: "50000.00", description: "Internal transfer to Operating Account for field expenses", status: "approved", internalToAccount: "****7823", memo: "Monthly operating fund allocation", referenceNumber: "IT-20260201-018", createdAt: new Date("2026-02-01T09:00:00.000Z") },
+    { type: "internal_transfer", amount: "25000.00", description: "Internal transfer to Payroll Account for contractor payments", status: "approved", internalToAccount: "****4091", memo: "Contractor payroll February 2026", referenceNumber: "IT-20260210-019", createdAt: new Date("2026-02-10T08:30:00.000Z") },
+  ];
+
+  for (const t of transferData) {
+    await db.insert(transfers).values({
+      customerId,
+      type: t.type,
+      amount: t.amount,
+      description: t.description,
+      status: t.status,
+      recipientName: t.recipientName || null,
+      recipientBank: t.recipientBank || null,
+      recipientAccount: t.recipientAccount || null,
+      recipientRoutingNumber: t.recipientRoutingNumber || null,
+      swiftCode: t.swiftCode || null,
+      bankAddress: t.bankAddress || null,
+      memo: t.memo || null,
+      internalToAccount: t.internalToAccount || null,
+      wireType: (t as any).wireType || null,
+      beneficiaryCountry: (t as any).beneficiaryCountry || null,
+      purpose: t.purpose || null,
+      referenceNumber: t.referenceNumber || null,
+      createdAt: t.createdAt,
+      updatedAt: t.createdAt,
+    });
+  }
 }
