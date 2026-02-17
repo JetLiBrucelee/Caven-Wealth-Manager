@@ -203,6 +203,13 @@ export async function registerRoutes(
       if (body.memberSince) {
         body.memberSince = new Date(body.memberSince);
       }
+      if (body.balance !== undefined && body.balance !== "") {
+        const parsed = parseFloat(body.balance);
+        if (isNaN(parsed)) {
+          return res.status(400).json({ message: "Invalid balance amount" });
+        }
+        body.balance = parsed.toFixed(2);
+      }
       const customer = await storage.createCustomer({
         ...body,
         accountNumber,
@@ -221,6 +228,13 @@ export async function registerRoutes(
     }
     if (updateData.memberSince) {
       updateData.memberSince = new Date(updateData.memberSince);
+    }
+    if (updateData.balance !== undefined && updateData.balance !== "") {
+      const parsed = parseFloat(updateData.balance);
+      if (isNaN(parsed)) {
+        return res.status(400).json({ message: "Invalid balance amount" });
+      }
+      updateData.balance = parsed.toFixed(2);
     }
     const updated = await storage.updateCustomer(parseInt(req.params.id), updateData);
     if (!updated) return res.status(404).json({ message: "Customer not found" });
@@ -253,6 +267,13 @@ export async function registerRoutes(
   app.post("/api/transactions", requireAdmin, async (req, res) => {
     try {
       const data = { ...req.body, date: new Date(req.body.date) };
+      if (data.amount !== undefined && data.amount !== "") {
+        const parsed = parseFloat(data.amount);
+        if (isNaN(parsed)) {
+          return res.status(400).json({ message: "Invalid amount" });
+        }
+        data.amount = parsed.toFixed(2);
+      }
       const transaction = await storage.createTransaction(data);
       return res.status(201).json(transaction);
     } catch (error: any) {
@@ -263,6 +284,13 @@ export async function registerRoutes(
   app.patch("/api/transactions/:id", requireAdmin, async (req, res) => {
     const data = { ...req.body };
     if (data.date) data.date = new Date(data.date);
+    if (data.amount !== undefined && data.amount !== "") {
+      const parsed = parseFloat(data.amount);
+      if (isNaN(parsed)) {
+        return res.status(400).json({ message: "Invalid amount" });
+      }
+      data.amount = parsed.toFixed(2);
+    }
     const updated = await storage.updateTransaction(parseInt(req.params.id), data);
     if (!updated) return res.status(404).json({ message: "Transaction not found" });
     return res.json(updated);

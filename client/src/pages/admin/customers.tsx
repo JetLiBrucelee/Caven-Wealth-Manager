@@ -347,7 +347,7 @@ export default function AdminCustomers() {
                       <Badge variant="outline" className="capitalize">{customer.accountType}</Badge>
                     </TableCell>
                     <TableCell className="font-medium">
-                      ${parseFloat(customer.balance).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                      ${parseFloat(customer.balance).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </TableCell>
                     <TableCell>
                       <Badge variant={customer.status === "active" ? "default" : customer.status === "blocked" ? "destructive" : "secondary"} className="capitalize">
@@ -687,6 +687,9 @@ export default function AdminCustomers() {
                   <Label htmlFor="balance">Initial Balance</Label>
                   <Input
                     id="balance"
+                    type="number"
+                    step="0.01"
+                    min="0"
                     value={formData.balance}
                     onChange={(e) => setFormData({ ...formData, balance: e.target.value })}
                     required
@@ -775,7 +778,7 @@ export default function AdminCustomers() {
             <div className="space-y-1 mb-4">
               <p className="text-sm font-medium" data-testid="text-fund-customer-name">{fundingCustomer.firstName} {fundingCustomer.lastName}</p>
               <p className="text-sm text-muted-foreground" data-testid="text-fund-customer-balance">
-                Current Balance: ${parseFloat(fundingCustomer.balance).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                Current Balance: ${parseFloat(fundingCustomer.balance).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
           )}
@@ -785,7 +788,7 @@ export default function AdminCustomers() {
               fundMutation.mutate({
                 id: fundingCustomer.id,
                 amount: parseFloat(fundAmount),
-                description: fundDescription || "Account funding by admin",
+                description: fundDescription || "",
               });
             }
           }} className="space-y-4">
@@ -808,7 +811,7 @@ export default function AdminCustomers() {
                 id="fund-description"
                 value={fundDescription}
                 onChange={(e) => setFundDescription(e.target.value)}
-                placeholder="Account funding by admin"
+                placeholder="Optional description"
                 data-testid="input-fund-description"
               />
             </div>

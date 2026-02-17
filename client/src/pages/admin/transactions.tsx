@@ -420,7 +420,7 @@ export default function AdminTransactions() {
                       <Badge variant="outline" className="capitalize">{tx.type}</Badge>
                     </TableCell>
                     <TableCell className="font-medium">
-                      ${parseFloat(tx.amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                      ${parseFloat(tx.amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
                       {tx.description}
@@ -535,6 +535,9 @@ export default function AdminTransactions() {
               <Label htmlFor="amount">Amount</Label>
               <Input
                 id="amount"
+                type="number"
+                step="0.01"
+                min="0.01"
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                 placeholder="0.00"
@@ -645,7 +648,7 @@ export default function AdminTransactions() {
               <div className="border-b pb-4 text-center">
                 <p className="text-xs text-muted-foreground uppercase tracking-wider">Amount</p>
                 <p className="text-3xl font-bold mt-1" data-testid="text-detail-amount">
-                  ${parseFloat(viewingTransaction.amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                  ${parseFloat(viewingTransaction.amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
                 <Badge
                   variant={viewingTransaction.status === "completed" ? "default" : viewingTransaction.status === "pending" ? "secondary" : "destructive"}
