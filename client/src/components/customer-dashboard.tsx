@@ -48,6 +48,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+function getAvatarPath(gender: string | null): string {
+  if (gender?.toLowerCase() === "female") return "/avatars/default-female.png";
+  return "/avatars/default-male.png";
+}
+
 interface CustomerData {
   id: number;
   firstName: string;
@@ -183,7 +188,7 @@ export default function CustomerDashboard({ customer: initialCustomer, onLogout 
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-2 hover:opacity-80 transition-opacity outline-none" data-testid="button-avatar-menu">
                 <img
-                  src="/avatars/default-avatar.png"
+                  src={getAvatarPath(customer.gender)}
                   alt="Avatar"
                   className="w-9 h-9 rounded-full border-2 border-slate-200 dark:border-slate-700 object-cover"
                   data-testid="img-user-avatar"
@@ -196,7 +201,7 @@ export default function CustomerDashboard({ customer: initialCustomer, onLogout 
                 <div className="flex items-center gap-4">
                   <div className="relative">
                     <img
-                      src="/avatars/default-avatar.png"
+                      src={getAvatarPath(customer.gender)}
                       alt="Avatar"
                       className="w-14 h-14 rounded-full border-[3px] border-white/30 object-cover shadow-lg"
                     />
