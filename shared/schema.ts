@@ -87,6 +87,7 @@ export const transfers = pgTable("transfers", {
   intermediaryRouting: text("intermediary_routing"),
   purpose: text("purpose"),
   referenceNumber: text("reference_number"),
+  declineReason: text("decline_reason"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
