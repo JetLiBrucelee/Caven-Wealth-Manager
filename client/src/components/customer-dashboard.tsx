@@ -166,10 +166,7 @@ export default function CustomerDashboard({ customer: initialCustomer, onLogout 
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-14 bg-white dark:bg-slate-900 border-b flex items-center justify-between gap-4 px-6 shrink-0">
-          <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
-            {menuItems.find(m => m.page === currentPage)?.label || "Dashboard"}
-          </div>
+        <header className="h-14 bg-white dark:bg-slate-900 border-b flex items-center justify-end gap-4 px-6 shrink-0">
           <div className="text-sm text-muted-foreground">
             {format(new Date(), "EEEE, MMMM d, yyyy")}
           </div>
@@ -308,9 +305,8 @@ function DashboardView({ customer, onNavigate }: { customer: CustomerData; onNav
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold" data-testid="text-dashboard-title">Dashboard overview</h2>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <DollarSign className="w-4 h-4" />
-          <span>{format(new Date(), "MMMM yyyy")}</span>
+        <div className="text-sm text-muted-foreground">
+          {format(new Date(), "MMMM yyyy")}
         </div>
       </div>
 
@@ -1052,6 +1048,23 @@ function TransactionHistoryView() {
     queryKey: ["/api/customer/transactions"],
     refetchInterval: 5000,
   });
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+
+  function parseDescription(desc: string) {
+    const parts = desc.split(" | ");
+    if (parts.length <= 1) return { title: desc, details: null };
+    const details: Record<string, string> = {};
+    const title = parts[0];
+    parts.slice(1).forEach((p) => {
+      const trimmed = p.trim();
+      if (trimmed.startsWith("Routing:")) details.routing = trimmed.replace("Routing: ", "");
+      else if (trimmed.startsWith("SWIFT:")) details.swift = trimmed.replace("SWIFT: ", "");
+      else if (trimmed.startsWith("Acct:")) details.account = trimmed.replace("Acct: ", "");
+      else if (!details.company) details.company = trimmed;
+      else if (!details.bank) details.bank = trimmed;
+    });
+    return { title, details: Object.keys(details).length ? details : null };
+  }
 
   return (
     <div className="space-y-4">
@@ -1063,34 +1076,89 @@ function TransactionHistoryView() {
           ) : !transactions?.length ? (
             <div className="p-8 text-center text-muted-foreground">No transactions yet</div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Reference</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transactions.map((t) => (
-                  <TableRow key={t.id} data-testid={`row-transaction-${t.id}`}>
-                    <TableCell className="text-sm">{format(new Date(t.date), "MMM d, yyyy h:mm a")}</TableCell>
-                    <TableCell className="text-sm capitalize">{t.type.replace(/_/g, " ")}</TableCell>
-                    <TableCell className="text-sm max-w-xs truncate">{t.description}</TableCell>
-                    <TableCell className={`text-right font-semibold ${t.type.includes("credit") || t.type.includes("deposit") ? "text-green-600" : "text-red-600"}`}>
-                      {t.type.includes("credit") || t.type.includes("deposit") ? "+" : "-"}{formatAmount(t.amount)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={t.status === "completed" ? "default" : "secondary"} className="capitalize">{t.status}</Badge>
-                    </TableCell>
-                    <TableCell className="text-sm font-mono text-muted-foreground">{t.reference || "-"}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="divide-y">
+              {transactions.map((t) => {
+                const { title, details } = parseDescription(t.description);
+                const isCredit = t.type.includes("credit") || t.type.includes("deposit");
+                const isExpanded = expandedId === t.id;
+                return (
+                  <div
+                    key={t.id}
+                    className="hover:bg-muted/50 transition-colors cursor-pointer"
+                    onClick={() => setExpandedId(isExpanded ? null : t.id)}
+                    data-testid={`row-transaction-${t.id}`}
+                  >
+                    <div className="flex items-center justify-between px-5 py-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-2 h-2 rounded-full shrink-0 ${isCredit ? "bg-green-500" : "bg-red-500"}`} />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">{title}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {format(new Date(t.date), "MMM d, yyyy")} · {t.reference || "-"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0 ml-4">
+                        <p className={`text-sm font-bold ${isCredit ? "text-green-600" : "text-red-600"}`}>
+                          {isCredit ? "+" : "-"}{formatAmount(t.amount)}
+                        </p>
+                        <p className="text-xs text-muted-foreground capitalize">{t.type.replace(/_/g, " ")}</p>
+                      </div>
+                    </div>
+                    {isExpanded && details && (
+                      <div className="px-5 pb-4 ml-5 border-l-2 border-muted ml-[1.6rem]">
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm pl-3">
+                          {details.company && (
+                            <div>
+                              <span className="text-xs text-muted-foreground block">Company</span>
+                              <span className="font-medium">{details.company}</span>
+                            </div>
+                          )}
+                          {details.bank && (
+                            <div>
+                              <span className="text-xs text-muted-foreground block">Bank</span>
+                              <span className="font-medium">{details.bank}</span>
+                            </div>
+                          )}
+                          {details.account && (
+                            <div>
+                              <span className="text-xs text-muted-foreground block">Account Number</span>
+                              <span className="font-mono font-medium">{details.account}</span>
+                            </div>
+                          )}
+                          {details.routing && (
+                            <div>
+                              <span className="text-xs text-muted-foreground block">Routing Number</span>
+                              <span className="font-mono font-medium">{details.routing}</span>
+                            </div>
+                          )}
+                          {details.swift && (
+                            <div>
+                              <span className="text-xs text-muted-foreground block">SWIFT Code</span>
+                              <span className="font-mono font-medium">{details.swift}</span>
+                            </div>
+                          )}
+                          <div>
+                            <span className="text-xs text-muted-foreground block">Status</span>
+                            <Badge variant={t.status === "completed" ? "default" : "secondary"} className="capitalize">{t.status}</Badge>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {isExpanded && !details && (
+                      <div className="px-5 pb-4 ml-[1.6rem]">
+                        <div className="text-sm pl-3">
+                          <span className="text-xs text-muted-foreground block">Status</span>
+                          <Badge variant={t.status === "completed" ? "default" : "secondary"} className="capitalize">{t.status}</Badge>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           )}
         </CardContent>
       </Card>
