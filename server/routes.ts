@@ -574,6 +574,54 @@ export async function registerRoutes(
     }
   });
 
+  // ========== CUSTOMER PROFILE ==========
+  app.patch("/api/customer/profile", requireCustomer, async (req, res) => {
+    try {
+      const customerId = (req.session as any).customerId;
+      const { email, phone, address, city, state, zipCode, country, avatar } = req.body;
+      const updateData: any = {};
+      if (email !== undefined) updateData.email = email;
+      if (phone !== undefined) updateData.phone = phone;
+      if (address !== undefined) updateData.address = address;
+      if (city !== undefined) updateData.city = city;
+      if (state !== undefined) updateData.state = state;
+      if (zipCode !== undefined) updateData.zipCode = zipCode;
+      if (country !== undefined) updateData.country = country;
+      if (avatar !== undefined) updateData.avatar = avatar;
+
+      const updated = await storage.updateCustomer(customerId, updateData);
+      if (!updated) return res.status(404).json({ message: "Customer not found" });
+
+      const { password: _, ...safe } = updated;
+      return res.json(safe);
+    } catch (error: any) {
+      return res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/customer/change-password", requireCustomer, async (req, res) => {
+    try {
+      const customerId = (req.session as any).customerId;
+      const { currentPassword, newPassword } = req.body;
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Current password and new password are required" });
+      }
+      if (newPassword.length < 8) {
+        return res.status(400).json({ message: "New password must be at least 8 characters" });
+      }
+      const customer = await storage.getCustomer(customerId);
+      if (!customer) return res.status(404).json({ message: "Customer not found" });
+
+      const valid = await bcrypt.compare(currentPassword, customer.password);
+      if (!valid) return res.status(401).json({ message: "Current password is incorrect" });
+
+      await storage.updateCustomer(customerId, { password: newPassword });
+      return res.json({ message: "Password changed successfully" });
+    } catch (error: any) {
+      return res.status(400).json({ message: error.message });
+    }
+  });
+
   // ========== CHAT MESSAGES ==========
   app.get("/api/customer/chat/unread", requireCustomer, async (req, res) => {
     const customerId = (req.session as any).customerId;

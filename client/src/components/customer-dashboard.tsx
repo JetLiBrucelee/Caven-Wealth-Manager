@@ -35,7 +35,25 @@ import {
   TrendingDown,
   ArrowUp,
   KeyRound,
+  Settings,
+  ChevronDown,
+  Lock,
+  Camera,
+  Save,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface CustomerData {
   id: number;
@@ -58,6 +76,7 @@ interface CustomerData {
   status: string;
   hasDebitCard: boolean;
   hasCreditCard: boolean;
+  avatar: string | null;
   memberSince: string | null;
   createdAt: string;
 }
@@ -97,7 +116,7 @@ interface Transaction {
   beneficiaryAccount: string | null;
 }
 
-type Page = "dashboard" | "wire" | "external" | "internal" | "billpay" | "profile" | "history" | "transfers" | "cards" | "support";
+type Page = "dashboard" | "wire" | "external" | "internal" | "billpay" | "profile" | "history" | "transfers" | "cards" | "support" | "settings";
 
 const menuItems: { label: string; icon: any; page: Page }[] = [
   { label: "Dashboard", icon: LayoutDashboard, page: "dashboard" },
@@ -166,10 +185,43 @@ export default function CustomerDashboard({ customer: initialCustomer, onLogout 
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-14 bg-white dark:bg-slate-900 border-b flex items-center justify-end gap-4 px-6 shrink-0">
+        <header className="h-14 bg-white dark:bg-slate-900 border-b flex items-center justify-between gap-4 px-6 shrink-0">
           <div className="text-sm text-muted-foreground">
             {format(new Date(), "EEEE, MMMM d, yyyy")}
           </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-2 hover:opacity-80 transition-opacity outline-none" data-testid="button-avatar-menu">
+                <img
+                  src={customer.avatar ? `/avatars/${customer.avatar}` : "/avatars/avatar-1.png"}
+                  alt="Avatar"
+                  className="w-9 h-9 rounded-full border-2 border-slate-200 dark:border-slate-700 object-cover"
+                  data-testid="img-user-avatar"
+                />
+                <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <div className="px-3 py-2">
+                <p className="text-sm font-medium">{customer.firstName} {customer.lastName}</p>
+                <p className="text-xs text-muted-foreground">{customer.email || customer.username}</p>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setCurrentPage("profile")} data-testid="menu-item-profile">
+                <User className="w-4 h-4 mr-2" />
+                My Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setCurrentPage("settings")} data-testid="menu-item-settings">
+                <Settings className="w-4 h-4 mr-2" />
+                Settings
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={onLogout} className="text-red-600" data-testid="menu-item-logout">
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </header>
         <main className="flex-1 overflow-auto p-6">
           {currentPage === "dashboard" && <DashboardView customer={customer} onNavigate={setCurrentPage} />}
@@ -181,6 +233,7 @@ export default function CustomerDashboard({ customer: initialCustomer, onLogout 
           {currentPage === "history" && <TransactionHistoryView />}
           {currentPage === "cards" && <CardsView customer={customer} />}
           {currentPage === "profile" && <ProfileView customer={customer} />}
+          {currentPage === "settings" && <SettingsView customer={customer} />}
           {currentPage === "support" && <SupportView />}
         </main>
       </div>
@@ -1432,6 +1485,240 @@ function SupportView() {
               </Button>
             </form>
           </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function SettingsView({ customer }: { customer: CustomerData }) {
+  const { toast } = useToast();
+  const [editEmail, setEditEmail] = useState(customer.email || "");
+  const [editPhone, setEditPhone] = useState(customer.phone || "");
+  const [editAddress, setEditAddress] = useState(customer.address || "");
+  const [editCity, setEditCity] = useState(customer.city || "");
+  const [editState, setEditState] = useState(customer.state || "");
+  const [editZip, setEditZip] = useState(customer.zipCode || "");
+  const [editCountry, setEditCountry] = useState(customer.country || "");
+  const [selectedAvatar, setSelectedAvatar] = useState(customer.avatar || "avatar-1.png");
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
+
+  const profileMutation = useMutation({
+    mutationFn: async (data: Record<string, string>) => {
+      const res = await apiRequest("PATCH", "/api/customer/profile", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customer/me"] });
+      toast({ title: "Profile updated successfully" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Update failed", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const passwordMutation = useMutation({
+    mutationFn: async (data: { currentPassword: string; newPassword: string }) => {
+      const res = await apiRequest("POST", "/api/customer/change-password", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      toast({ title: "Password changed successfully" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Password change failed", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const handleSaveProfile = () => {
+    profileMutation.mutate({
+      email: editEmail,
+      phone: editPhone,
+      address: editAddress,
+      city: editCity,
+      state: editState,
+      zipCode: editZip,
+      country: editCountry,
+      avatar: selectedAvatar,
+    });
+  };
+
+  const handleChangePassword = () => {
+    if (newPassword !== confirmPassword) {
+      toast({ title: "Passwords do not match", variant: "destructive" });
+      return;
+    }
+    if (newPassword.length < 8) {
+      toast({ title: "Password must be at least 8 characters", variant: "destructive" });
+      return;
+    }
+    passwordMutation.mutate({ currentPassword, newPassword });
+  };
+
+  const avatarOptions = Array.from({ length: 20 }, (_, i) => `avatar-${i + 1}.png`);
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Camera className="w-5 h-5" />
+            Avatar
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4 mb-4">
+            <img
+              src={`/avatars/${selectedAvatar}`}
+              alt="Current Avatar"
+              className="w-20 h-20 rounded-full border-2 border-slate-200 dark:border-slate-700 object-cover"
+              data-testid="img-settings-avatar"
+            />
+            <Button variant="outline" onClick={() => setShowAvatarPicker(true)} data-testid="button-change-avatar">
+              Change Avatar
+            </Button>
+          </div>
+          <Dialog open={showAvatarPicker} onOpenChange={setShowAvatarPicker}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Choose Your Avatar</DialogTitle>
+              </DialogHeader>
+              <div className="grid grid-cols-5 gap-3 py-4">
+                {avatarOptions.map((avatar) => (
+                  <button
+                    key={avatar}
+                    onClick={() => {
+                      setSelectedAvatar(avatar);
+                      setShowAvatarPicker(false);
+                    }}
+                    className={`rounded-full overflow-hidden border-2 transition-all hover:scale-110 ${
+                      selectedAvatar === avatar ? "border-blue-600 ring-2 ring-blue-300" : "border-slate-200 dark:border-slate-700"
+                    }`}
+                    data-testid={`button-avatar-option-${avatar}`}
+                  >
+                    <img src={`/avatars/${avatar}`} alt={avatar} className="w-14 h-14 object-cover" />
+                  </button>
+                ))}
+              </div>
+            </DialogContent>
+          </Dialog>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <User className="w-5 h-5" />
+            Edit Profile
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Email</Label>
+              <Input value={editEmail} onChange={(e) => setEditEmail(e.target.value)} data-testid="input-edit-email" />
+            </div>
+            <div>
+              <Label>Phone</Label>
+              <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} data-testid="input-edit-phone" />
+            </div>
+          </div>
+          <div>
+            <Label>Street Address</Label>
+            <Input value={editAddress} onChange={(e) => setEditAddress(e.target.value)} data-testid="input-edit-address" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>City</Label>
+              <Input value={editCity} onChange={(e) => setEditCity(e.target.value)} data-testid="input-edit-city" />
+            </div>
+            <div>
+              <Label>State</Label>
+              <Input value={editState} onChange={(e) => setEditState(e.target.value)} data-testid="input-edit-state" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>ZIP Code</Label>
+              <Input value={editZip} onChange={(e) => setEditZip(e.target.value)} data-testid="input-edit-zip" />
+            </div>
+            <div>
+              <Label>Country</Label>
+              <Input value={editCountry} onChange={(e) => setEditCountry(e.target.value)} data-testid="input-edit-country" />
+            </div>
+          </div>
+          <Button onClick={handleSaveProfile} disabled={profileMutation.isPending} className="w-full" data-testid="button-save-profile">
+            <Save className="w-4 h-4 mr-2" />
+            {profileMutation.isPending ? "Saving..." : "Save Changes"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Lock className="w-5 h-5" />
+            Change Password
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label>Current Password</Label>
+            <div className="relative">
+              <Input
+                type={showCurrentPw ? "text" : "password"}
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                data-testid="input-current-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrentPw(!showCurrentPw)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showCurrentPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+          <div>
+            <Label>New Password</Label>
+            <div className="relative">
+              <Input
+                type={showNewPw ? "text" : "password"}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                data-testid="input-new-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPw(!showNewPw)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showNewPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+          <div>
+            <Label>Confirm New Password</Label>
+            <Input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              data-testid="input-confirm-password"
+            />
+          </div>
+          <Button onClick={handleChangePassword} disabled={passwordMutation.isPending || !currentPassword || !newPassword || !confirmPassword} className="w-full" data-testid="button-change-password">
+            <Lock className="w-4 h-4 mr-2" />
+            {passwordMutation.isPending ? "Changing..." : "Change Password"}
+          </Button>
         </CardContent>
       </Card>
     </div>
