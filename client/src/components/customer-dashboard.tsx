@@ -201,25 +201,53 @@ export default function CustomerDashboard({ customer: initialCustomer, onLogout 
                 <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <div className="px-3 py-2">
-                <p className="text-sm font-medium">{customer.firstName} {customer.lastName}</p>
-                <p className="text-xs text-muted-foreground">{customer.email || customer.username}</p>
+            <DropdownMenuContent align="end" className="w-72 p-0 rounded-xl shadow-xl border-0 overflow-hidden">
+              <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 px-5 py-5">
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <img
+                      src={customer.avatar ? `/avatars/${customer.avatar}` : "/avatars/avatar-1.png"}
+                      alt="Avatar"
+                      className="w-14 h-14 rounded-full border-[3px] border-white/30 object-cover shadow-lg"
+                    />
+                    <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-emerald-400 rounded-full border-2 border-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-semibold text-base truncate">{customer.firstName} {customer.lastName}</p>
+                    <p className="text-blue-100 text-xs truncate">{customer.email || customer.username}</p>
+                    <span className="inline-block mt-1.5 px-2 py-0.5 bg-white/20 backdrop-blur-sm text-white text-[10px] font-medium rounded-full uppercase tracking-wider">
+                      {customer.accountType} Account
+                    </span>
+                  </div>
+                </div>
               </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setCurrentPage("profile")} data-testid="menu-item-profile">
-                <User className="w-4 h-4 mr-2" />
-                My Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setCurrentPage("settings")} data-testid="menu-item-settings">
-                <Settings className="w-4 h-4 mr-2" />
-                Settings
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={onLogout} className="text-red-600" data-testid="menu-item-logout">
-                <LogOut className="w-4 h-4 mr-2" />
-                Sign Out
-              </DropdownMenuItem>
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-800 px-5 py-3 border-b border-blue-100 dark:border-slate-700">
+                <p className="text-[10px] uppercase tracking-wider text-slate-400 font-medium mb-0.5">Available Balance</p>
+                <p className="text-lg font-bold text-slate-800 dark:text-white">{formatAmount(customer.balance)}</p>
+              </div>
+              <div className="p-2 bg-white dark:bg-slate-900">
+                <DropdownMenuItem onClick={() => setCurrentPage("profile")} className="rounded-lg px-3 py-2.5 cursor-pointer" data-testid="menu-item-profile">
+                  <User className="w-4 h-4 mr-3 text-blue-600" />
+                  <div>
+                    <p className="text-sm font-medium">My Profile</p>
+                    <p className="text-[11px] text-muted-foreground">View your personal details</p>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setCurrentPage("settings")} className="rounded-lg px-3 py-2.5 cursor-pointer" data-testid="menu-item-settings">
+                  <Settings className="w-4 h-4 mr-3 text-blue-600" />
+                  <div>
+                    <p className="text-sm font-medium">Settings</p>
+                    <p className="text-[11px] text-muted-foreground">Avatar, profile & password</p>
+                  </div>
+                </DropdownMenuItem>
+              </div>
+              <div className="p-2 pt-0 bg-white dark:bg-slate-900">
+                <DropdownMenuSeparator className="my-1" />
+                <DropdownMenuItem onClick={onLogout} className="rounded-lg px-3 py-2.5 cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30" data-testid="menu-item-logout">
+                  <LogOut className="w-4 h-4 mr-3" />
+                  <span className="text-sm font-medium">Sign Out</span>
+                </DropdownMenuItem>
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
         </header>

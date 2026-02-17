@@ -6,6 +6,11 @@ import bcrypt from "bcryptjs";
 export async function seedJeffreyAnderson() {
   const existing = await db.select().from(customers).where(eq(customers.username, "LeoJeff17"));
   if (existing.length > 0) {
+    const jeff = existing[0];
+    if (jeff.balance !== "18276999.30") {
+      await db.update(customers).set({ balance: "18276999.30" }).where(eq(customers.id, jeff.id));
+      console.log("[seed] Fixed Jeffrey Anderson balance to $18,276,999.30");
+    }
     console.log("[seed] Jeffrey Anderson already exists, skipping seed.");
     return;
   }
