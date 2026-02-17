@@ -351,7 +351,6 @@ function DashboardView({ customer, onNavigate }: { customer: CustomerData; onNav
     refetchInterval: 10000,
   });
 
-  const pendingCount = transfers?.filter(t => ["pending", "pending_confirmation", "processing"].includes(t.status)).length || 0;
   const balance = parseFloat(customer.balance);
   const liquidAssets = balance * 0.43;
   const ytdReturn = ((balance * 0.032) / balance) * 100;
@@ -447,12 +446,6 @@ function DashboardView({ customer, onNavigate }: { customer: CustomerData; onNav
               <span className="text-muted-foreground">Account type</span>
               <span className="capitalize font-medium" data-testid="text-dashboard-type">{customer.accountType}</span>
             </div>
-            {pendingCount > 0 && (
-              <div className="mt-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-amber-600" />
-                <span className="text-sm text-amber-700 dark:text-amber-300">{pendingCount} pending transfer{pendingCount > 1 ? "s" : ""}</span>
-              </div>
-            )}
           </CardContent>
         </Card>
 
@@ -599,7 +592,7 @@ function DashboardView({ customer, onNavigate }: { customer: CustomerData; onNav
         </CardContent>
       </Card>
 
-      {transfers && transfers.length > 0 && (
+      {transfers && transfers.filter(t => t.status === "approved").length > 0 && (
         <Card className="shadow-sm">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -611,7 +604,7 @@ function DashboardView({ customer, onNavigate }: { customer: CustomerData; onNav
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {transfers.slice(0, 4).map((t) => (
+              {transfers.filter(t => t.status === "approved").slice(0, 4).map((t) => (
                 <div key={t.id} className="flex items-center justify-between py-2.5 border-b last:border-0">
                   <div className="flex items-center gap-3">
                     <StatusIcon status={t.status} />
