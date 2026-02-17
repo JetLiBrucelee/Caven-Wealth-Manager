@@ -548,6 +548,7 @@ function sanitizeCustomer(customer: any) {
     status: customer.status,
     hasDebitCard: customer.hasDebitCard,
     hasCreditCard: customer.hasCreditCard,
+    memberSince: customer.memberSince,
     createdAt: customer.createdAt,
   };
 }
