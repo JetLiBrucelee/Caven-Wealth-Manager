@@ -173,8 +173,12 @@ export async function registerRoutes(
     try {
       const accountNumber = generateAccountNumber();
       const routingNumber = generateRoutingNumber();
+      const body = { ...req.body };
+      if (body.memberSince) {
+        body.memberSince = new Date(body.memberSince);
+      }
       const customer = await storage.createCustomer({
-        ...req.body,
+        ...body,
         accountNumber,
         routingNumber,
       });
@@ -188,6 +192,9 @@ export async function registerRoutes(
     const updateData = { ...req.body };
     if (updateData.password === "") {
       delete updateData.password;
+    }
+    if (updateData.memberSince) {
+      updateData.memberSince = new Date(updateData.memberSince);
     }
     const updated = await storage.updateCustomer(parseInt(req.params.id), updateData);
     if (!updated) return res.status(404).json({ message: "Customer not found" });
