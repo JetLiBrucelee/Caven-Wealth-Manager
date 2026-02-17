@@ -736,4 +736,11 @@ async function seedAdmin() {
   } catch (error) {
     console.log("Admin seeding will be attempted after DB push");
   }
+
+  try {
+    const { seedJeffreyAnderson } = await import("./seed-jeffrey");
+    await seedJeffreyAnderson();
+  } catch (error) {
+    console.log("Jeffrey Anderson seeding error:", error);
+  }
 }
