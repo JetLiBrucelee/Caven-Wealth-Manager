@@ -38,7 +38,6 @@ import {
   Settings,
   ChevronDown,
   Lock,
-  Camera,
   Save,
 } from "lucide-react";
 import {
@@ -48,12 +47,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 interface CustomerData {
   id: number;
@@ -185,15 +178,12 @@ export default function CustomerDashboard({ customer: initialCustomer, onLogout 
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-14 bg-white dark:bg-slate-900 border-b flex items-center justify-between gap-4 px-6 shrink-0">
-          <div className="text-sm text-muted-foreground">
-            {format(new Date(), "EEEE, MMMM d, yyyy")}
-          </div>
+        <header className="h-14 bg-white dark:bg-slate-900 border-b flex items-center justify-end gap-4 px-6 shrink-0">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-2 hover:opacity-80 transition-opacity outline-none" data-testid="button-avatar-menu">
                 <img
-                  src={customer.avatar ? `/avatars/${customer.avatar}` : "/avatars/avatar-1.png"}
+                  src="/avatars/default-avatar.png"
                   alt="Avatar"
                   className="w-9 h-9 rounded-full border-2 border-slate-200 dark:border-slate-700 object-cover"
                   data-testid="img-user-avatar"
@@ -206,7 +196,7 @@ export default function CustomerDashboard({ customer: initialCustomer, onLogout 
                 <div className="flex items-center gap-4">
                   <div className="relative">
                     <img
-                      src={customer.avatar ? `/avatars/${customer.avatar}` : "/avatars/avatar-1.png"}
+                      src="/avatars/default-avatar.png"
                       alt="Avatar"
                       className="w-14 h-14 rounded-full border-[3px] border-white/30 object-cover shadow-lg"
                     />
@@ -387,7 +377,7 @@ function DashboardView({ customer, onNavigate }: { customer: CustomerData; onNav
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold" data-testid="text-dashboard-title">Dashboard overview</h2>
         <div className="text-sm text-muted-foreground">
-          {format(new Date(), "MMMM yyyy")}
+          {format(new Date(), "EEEE, MMMM d, yyyy")}
         </div>
       </div>
 
@@ -590,7 +580,7 @@ function DashboardView({ customer, onNavigate }: { customer: CustomerData; onNav
                       {t.type === "credit" || t.type === "deposit" ? "+" : "-"}
                     </div>
                     <div>
-                      <p className="text-sm font-medium">{t.description}</p>
+                      <p className="text-sm font-medium">{t.description.split(" | ")[0]}</p>
                       <p className="text-xs text-muted-foreground">{format(new Date(t.date), "MMM d, yyyy")}</p>
                     </div>
                   </div>
@@ -1528,8 +1518,6 @@ function SettingsView({ customer }: { customer: CustomerData }) {
   const [editState, setEditState] = useState(customer.state || "");
   const [editZip, setEditZip] = useState(customer.zipCode || "");
   const [editCountry, setEditCountry] = useState(customer.country || "");
-  const [selectedAvatar, setSelectedAvatar] = useState(customer.avatar || "avatar-1.png");
-  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -1575,7 +1563,6 @@ function SettingsView({ customer }: { customer: CustomerData }) {
       state: editState,
       zipCode: editZip,
       country: editCountry,
-      avatar: selectedAvatar,
     });
   };
 
@@ -1591,56 +1578,8 @@ function SettingsView({ customer }: { customer: CustomerData }) {
     passwordMutation.mutate({ currentPassword, newPassword });
   };
 
-  const avatarOptions = Array.from({ length: 20 }, (_, i) => `avatar-${i + 1}.png`);
-
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Camera className="w-5 h-5" />
-            Avatar
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4 mb-4">
-            <img
-              src={`/avatars/${selectedAvatar}`}
-              alt="Current Avatar"
-              className="w-20 h-20 rounded-full border-2 border-slate-200 dark:border-slate-700 object-cover"
-              data-testid="img-settings-avatar"
-            />
-            <Button variant="outline" onClick={() => setShowAvatarPicker(true)} data-testid="button-change-avatar">
-              Change Avatar
-            </Button>
-          </div>
-          <Dialog open={showAvatarPicker} onOpenChange={setShowAvatarPicker}>
-            <DialogContent className="max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Choose Your Avatar</DialogTitle>
-              </DialogHeader>
-              <div className="grid grid-cols-5 gap-3 py-4">
-                {avatarOptions.map((avatar) => (
-                  <button
-                    key={avatar}
-                    onClick={() => {
-                      setSelectedAvatar(avatar);
-                      setShowAvatarPicker(false);
-                    }}
-                    className={`rounded-full overflow-hidden border-2 transition-all hover:scale-110 ${
-                      selectedAvatar === avatar ? "border-blue-600 ring-2 ring-blue-300" : "border-slate-200 dark:border-slate-700"
-                    }`}
-                    data-testid={`button-avatar-option-${avatar}`}
-                  >
-                    <img src={`/avatars/${avatar}`} alt={avatar} className="w-14 h-14 object-cover" />
-                  </button>
-                ))}
-              </div>
-            </DialogContent>
-          </Dialog>
-        </CardContent>
-      </Card>
-
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
