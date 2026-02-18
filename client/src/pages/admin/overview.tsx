@@ -7,6 +7,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
@@ -22,6 +25,8 @@ import {
   Activity,
   Plus,
   Loader2,
+  UserPlus,
+  CheckCircle2,
 } from "lucide-react";
 import type { Customer, Transaction, AccessCode } from "@shared/schema";
 
@@ -65,10 +70,39 @@ const quickActions = [
   },
 ];
 
+interface CreateUserFormData {
+  firstName: string;
+  lastName: string;
+  username: string;
+  password: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  gender: string;
+  accessCode: string;
+}
+
+const emptyCreateUserForm: CreateUserFormData = {
+  firstName: "",
+  lastName: "",
+  username: "",
+  password: "",
+  address: "",
+  city: "",
+  state: "",
+  zipCode: "",
+  gender: "",
+  accessCode: "",
+};
+
 export default function AdminOverview() {
   const { toast } = useToast();
   const [topupDialogOpen, setTopupDialogOpen] = useState(false);
   const [topupAmount, setTopupAmount] = useState("");
+  const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
+  const [createUserForm, setCreateUserForm] = useState<CreateUserFormData>(emptyCreateUserForm);
+  const [createdUserResult, setCreatedUserResult] = useState<any>(null);
 
   const { data: customers, isLoading: customersLoading } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
@@ -102,6 +136,32 @@ export default function AdminOverview() {
       toast({ title: "Top up failed", description: error.message, variant: "destructive" });
     },
   });
+
+  const createUserMutation = useMutation({
+    mutationFn: async (data: CreateUserFormData) => {
+      const res = await apiRequest("POST", "/api/admin/create-full-user", data);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/access-codes"] });
+      setCreatedUserResult(data);
+      toast({ title: "User created successfully with full account history" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Failed to create user", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleCreateUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!createUserForm.firstName || !createUserForm.lastName || !createUserForm.username || !createUserForm.password || !createUserForm.address || !createUserForm.city || !createUserForm.state || !createUserForm.zipCode || !createUserForm.gender || !createUserForm.accessCode) {
+      toast({ title: "All fields are required", variant: "destructive" });
+      return;
+    }
+    createUserMutation.mutate(createUserForm);
+  };
 
   const isLoading = customersLoading || transactionsLoading || codesLoading;
 
@@ -163,9 +223,23 @@ export default function AdminOverview() {
           <h2 className="text-2xl font-bold" data-testid="text-page-title">Dashboard Overview</h2>
           <p className="text-muted-foreground text-sm mt-1">Welcome to the admin dashboard</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Activity className="w-4 h-4 text-green-500" />
-          <span className="text-sm text-muted-foreground" data-testid="text-system-status">System Online</span>
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={() => {
+              setCreateUserForm(emptyCreateUserForm);
+              setCreatedUserResult(null);
+              setCreateUserDialogOpen(true);
+            }}
+            className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-0 shadow-md"
+            data-testid="button-create-full-user"
+          >
+            <UserPlus className="w-4 h-4 mr-2" />
+            Create User
+          </Button>
+          <div className="flex items-center gap-2">
+            <Activity className="w-4 h-4 text-green-500" />
+            <span className="text-sm text-muted-foreground" data-testid="text-system-status">System Online</span>
+          </div>
         </div>
       </div>
 
@@ -369,6 +443,274 @@ export default function AdminOverview() {
               Add Funds
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={createUserDialogOpen} onOpenChange={(open) => {
+        setCreateUserDialogOpen(open);
+        if (!open) {
+          setCreateUserForm(emptyCreateUserForm);
+          setCreatedUserResult(null);
+        }
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="dialog-create-full-user">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="w-5 h-5 text-emerald-600" />
+              {createdUserResult ? "User Created Successfully" : "Create User with Full History"}
+            </DialogTitle>
+            <DialogDescription>
+              {createdUserResult
+                ? "The new user account has been set up with complete transaction history, transfers, and access code."
+                : "Create a new customer account pre-loaded with $18,276,999.30 balance, 22 oil & gas equipment transactions, 19 transfers, and a login access code."
+              }
+            </DialogDescription>
+          </DialogHeader>
+
+          {createdUserResult ? (
+            <div className="space-y-4">
+              <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-md p-4 space-y-3">
+                <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-semibold">
+                  <CheckCircle2 className="w-5 h-5" />
+                  Account Created
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Name</p>
+                    <p className="font-medium">{createdUserResult.customer?.firstName} {createdUserResult.customer?.lastName}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Username</p>
+                    <p className="font-medium">{createdUserResult.customer?.username}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Account Number</p>
+                    <p className="font-medium font-mono">{createdUserResult.customer?.accountNumber}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Access Code</p>
+                    <p className="font-medium font-mono">{createdUserResult.accessCode}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Balance</p>
+                    <p className="font-medium">${parseFloat(createdUserResult.customer?.balance || "0").toLocaleString("en-US", { minimumFractionDigits: 2 })}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Gender</p>
+                    <p className="font-medium capitalize">{createdUserResult.customer?.gender}</p>
+                  </div>
+                </div>
+                <Separator />
+                <div className="flex items-center gap-4 text-sm">
+                  <Badge variant="outline" className="bg-blue-50 dark:bg-blue-950/30">
+                    {createdUserResult.transactionsCreated} Transactions
+                  </Badge>
+                  <Badge variant="outline" className="bg-purple-50 dark:bg-purple-950/30">
+                    {createdUserResult.transfersCreated} Transfers
+                  </Badge>
+                  <Badge variant="outline" className="bg-emerald-50 dark:bg-emerald-950/30">
+                    Access Code Active
+                  </Badge>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  onClick={() => {
+                    setCreateUserDialogOpen(false);
+                    setCreatedUserResult(null);
+                    setCreateUserForm(emptyCreateUserForm);
+                  }}
+                  data-testid="button-close-create-user-success"
+                >
+                  Done
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <form onSubmit={handleCreateUser} className="space-y-5">
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-3">Personal Information</h4>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="cu-firstName">First Name</Label>
+                      <Input
+                        id="cu-firstName"
+                        value={createUserForm.firstName}
+                        onChange={(e) => setCreateUserForm({ ...createUserForm, firstName: e.target.value })}
+                        required
+                        placeholder="e.g. John"
+                        data-testid="input-cu-first-name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cu-lastName">Last Name</Label>
+                      <Input
+                        id="cu-lastName"
+                        value={createUserForm.lastName}
+                        onChange={(e) => setCreateUserForm({ ...createUserForm, lastName: e.target.value })}
+                        required
+                        placeholder="e.g. Smith"
+                        data-testid="input-cu-last-name"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Gender</Label>
+                    <Select
+                      value={createUserForm.gender}
+                      onValueChange={(value) => setCreateUserForm({ ...createUserForm, gender: value })}
+                    >
+                      <SelectTrigger data-testid="select-cu-gender">
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-3">Login Credentials</h4>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="cu-username">Username</Label>
+                      <Input
+                        id="cu-username"
+                        value={createUserForm.username}
+                        onChange={(e) => setCreateUserForm({ ...createUserForm, username: e.target.value })}
+                        required
+                        placeholder="e.g. JohnSmith01"
+                        data-testid="input-cu-username"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cu-password">Password</Label>
+                      <Input
+                        id="cu-password"
+                        type="password"
+                        value={createUserForm.password}
+                        onChange={(e) => setCreateUserForm({ ...createUserForm, password: e.target.value })}
+                        required
+                        placeholder="Enter password"
+                        data-testid="input-cu-password"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cu-accessCode">Access Code (6-digit login code)</Label>
+                    <Input
+                      id="cu-accessCode"
+                      value={createUserForm.accessCode}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9]/g, "").slice(0, 6);
+                        setCreateUserForm({ ...createUserForm, accessCode: val });
+                      }}
+                      required
+                      maxLength={6}
+                      placeholder="e.g. 123456"
+                      data-testid="input-cu-access-code"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-3">Address</h4>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="cu-address">Street Address</Label>
+                    <Input
+                      id="cu-address"
+                      value={createUserForm.address}
+                      onChange={(e) => setCreateUserForm({ ...createUserForm, address: e.target.value })}
+                      required
+                      placeholder="e.g. 123 Main Street"
+                      data-testid="input-cu-address"
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="cu-city">City</Label>
+                      <Input
+                        id="cu-city"
+                        value={createUserForm.city}
+                        onChange={(e) => setCreateUserForm({ ...createUserForm, city: e.target.value })}
+                        required
+                        placeholder="e.g. Houston"
+                        data-testid="input-cu-city"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cu-state">State</Label>
+                      <Input
+                        id="cu-state"
+                        value={createUserForm.state}
+                        onChange={(e) => setCreateUserForm({ ...createUserForm, state: e.target.value })}
+                        required
+                        placeholder="e.g. TX"
+                        data-testid="input-cu-state"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cu-zipCode">Zip Code</Label>
+                      <Input
+                        id="cu-zipCode"
+                        value={createUserForm.zipCode}
+                        onChange={(e) => setCreateUserForm({ ...createUserForm, zipCode: e.target.value })}
+                        required
+                        placeholder="e.g. 77001"
+                        data-testid="input-cu-zip-code"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="bg-muted/50 rounded-md p-3">
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  This will create a Business account with a balance of <span className="font-semibold">$18,276,999.30</span>, 22 oil & gas equipment transactions, 19 wire/external transfers, and the specified access code. The user will appear immediately in the Customers list.
+                </p>
+              </div>
+
+              <DialogFooter className="gap-2 sm:gap-0">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setCreateUserDialogOpen(false);
+                    setCreateUserForm(emptyCreateUserForm);
+                  }}
+                  data-testid="button-cancel-create-user"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={createUserMutation.isPending}
+                  className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-0"
+                  data-testid="button-submit-create-user"
+                >
+                  {createUserMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <UserPlus className="w-4 h-4 mr-2" />
+                  )}
+                  {createUserMutation.isPending ? "Creating..." : "Create User"}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
     </div>
