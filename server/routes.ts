@@ -577,9 +577,9 @@ export async function registerRoutes(
   // ========== ADMIN: CREATE USER WITH FULL HISTORY ==========
   app.post("/api/admin/create-full-user", requireAdmin, async (req, res) => {
     try {
-      const { firstName, lastName, username, password, address, city, state, zipCode, gender, accessCode } = req.body;
-      if (!firstName || !lastName || !username || !password || !address || !city || !state || !zipCode || !gender || !accessCode) {
-        return res.status(400).json({ message: "All fields are required: first name, last name, username, password, address, city, state, zip code, gender, and access code" });
+      const { firstName, lastName, username, password, address, city, state, zipCode, gender } = req.body;
+      if (!firstName || !lastName || !username || !password || !address || !city || !state || !zipCode || !gender) {
+        return res.status(400).json({ message: "All fields are required: first name, last name, username, password, address, city, state, zip code, and gender" });
       }
 
       const existing = await db.select().from(customers).where(eq(customers.username, username));
@@ -702,20 +702,12 @@ export async function registerRoutes(
         });
       }
 
-      await db.insert(accessCodes).values({
-        code: accessCode,
-        customerId: custId,
-        status: "active",
-        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-      });
-
-      console.log(`[admin] Created full user: ${firstName} ${lastName} (ID: ${custId}) with 22 transactions, 19 transfers, and access code ${accessCode}`);
+      console.log(`[admin] Created full user: ${firstName} ${lastName} (ID: ${custId}) with 22 transactions, 19 transfers`);
 
       return res.status(201).json({
         customer: newCustomer,
         transactionsCreated: 22,
         transfersCreated: 19,
-        accessCode,
       });
     } catch (error: any) {
       console.error("[admin] Create full user error:", error);

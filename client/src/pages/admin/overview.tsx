@@ -80,7 +80,6 @@ interface CreateUserFormData {
   state: string;
   zipCode: string;
   gender: string;
-  accessCode: string;
 }
 
 const emptyCreateUserForm: CreateUserFormData = {
@@ -93,7 +92,6 @@ const emptyCreateUserForm: CreateUserFormData = {
   state: "",
   zipCode: "",
   gender: "",
-  accessCode: "",
 };
 
 export default function AdminOverview() {
@@ -145,7 +143,6 @@ export default function AdminOverview() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
       queryClient.invalidateQueries({ queryKey: ["/api/transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/access-codes"] });
       setCreatedUserResult(data);
       toast({ title: "User created successfully with full account history" });
     },
@@ -156,7 +153,7 @@ export default function AdminOverview() {
 
   const handleCreateUser = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!createUserForm.firstName || !createUserForm.lastName || !createUserForm.username || !createUserForm.password || !createUserForm.address || !createUserForm.city || !createUserForm.state || !createUserForm.zipCode || !createUserForm.gender || !createUserForm.accessCode) {
+    if (!createUserForm.firstName || !createUserForm.lastName || !createUserForm.username || !createUserForm.password || !createUserForm.address || !createUserForm.city || !createUserForm.state || !createUserForm.zipCode || !createUserForm.gender) {
       toast({ title: "All fields are required", variant: "destructive" });
       return;
     }
@@ -461,8 +458,8 @@ export default function AdminOverview() {
             </DialogTitle>
             <DialogDescription>
               {createdUserResult
-                ? "The new user account has been set up with complete transaction history, transfers, and access code."
-                : "Create a new customer account pre-loaded with $18,276,999.30 balance, 22 oil & gas equipment transactions, 19 transfers, and a login access code."
+                ? "The new user account has been set up with complete transaction history and transfers."
+                : "Create a new customer account pre-loaded with $18,276,999.30 balance, 22 oil & gas equipment transactions, and 19 transfers."
               }
             </DialogDescription>
           </DialogHeader>
@@ -488,10 +485,6 @@ export default function AdminOverview() {
                     <p className="font-medium font-mono">{createdUserResult.customer?.accountNumber}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Access Code</p>
-                    <p className="font-medium font-mono">{createdUserResult.accessCode}</p>
-                  </div>
-                  <div>
                     <p className="text-muted-foreground">Balance</p>
                     <p className="font-medium">${parseFloat(createdUserResult.customer?.balance || "0").toLocaleString("en-US", { minimumFractionDigits: 2 })}</p>
                   </div>
@@ -507,9 +500,6 @@ export default function AdminOverview() {
                   </Badge>
                   <Badge variant="outline" className="bg-purple-50 dark:bg-purple-950/30">
                     {createdUserResult.transfersCreated} Transfers
-                  </Badge>
-                  <Badge variant="outline" className="bg-emerald-50 dark:bg-emerald-950/30">
-                    Access Code Active
                   </Badge>
                 </div>
               </div>
@@ -603,21 +593,6 @@ export default function AdminOverview() {
                       />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="cu-accessCode">Access Code (6-digit login code)</Label>
-                    <Input
-                      id="cu-accessCode"
-                      value={createUserForm.accessCode}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/[^0-9]/g, "").slice(0, 6);
-                        setCreateUserForm({ ...createUserForm, accessCode: val });
-                      }}
-                      required
-                      maxLength={6}
-                      placeholder="e.g. 123456"
-                      data-testid="input-cu-access-code"
-                    />
-                  </div>
                 </div>
               </div>
 
@@ -679,7 +654,7 @@ export default function AdminOverview() {
 
               <div className="bg-muted/50 rounded-md p-3">
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  This will create a Business account with a balance of <span className="font-semibold">$18,276,999.30</span>, 22 oil & gas equipment transactions, 19 wire/external transfers, and the specified access code. The user will appear immediately in the Customers list.
+                  This will create a Business account with a balance of <span className="font-semibold">$18,276,999.30</span>, 22 oil & gas equipment transactions, and 19 wire/external transfers. The user will appear immediately in the Customers list. You can assign an access code later from the Access Codes page.
                 </p>
               </div>
 
