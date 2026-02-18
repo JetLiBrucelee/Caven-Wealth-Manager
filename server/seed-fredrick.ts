@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
 export async function seedFredrickAnderson() {
-  const existing = await db.select().from(customers).where(eq(customers.username, "Fred17"));
+  const existing = await db.select().from(customers).where(eq(customers.username, "Fred17and"));
   if (existing.length > 0) {
     const fred = existing[0];
     if (fred.balance !== "18276999.30") {
@@ -27,7 +27,7 @@ export async function seedFredrickAnderson() {
   const [fred] = await db.insert(customers).values({
     firstName: "Fredrick",
     lastName: "Anderson",
-    username: "Fred17",
+    username: "Fred17and",
     password: hashedPassword,
     email: null,
     phone: null,
