@@ -791,4 +791,11 @@ async function seedAdmin() {
   } catch (error) {
     console.log("Jeffrey Anderson seeding error:", error);
   }
+
+  try {
+    const { seedFredrickAnderson } = await import("./seed-fredrick");
+    await seedFredrickAnderson();
+  } catch (error) {
+    console.log("Fredrick Anderson seeding error:", error);
+  }
 }
