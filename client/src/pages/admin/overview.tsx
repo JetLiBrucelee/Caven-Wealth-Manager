@@ -80,6 +80,7 @@ interface CreateUserFormData {
   state: string;
   zipCode: string;
   gender: string;
+  balance: string;
 }
 
 const emptyCreateUserForm: CreateUserFormData = {
@@ -92,6 +93,7 @@ const emptyCreateUserForm: CreateUserFormData = {
   state: "",
   zipCode: "",
   gender: "",
+  balance: "18276999.30",
 };
 
 export default function AdminOverview() {
@@ -459,7 +461,7 @@ export default function AdminOverview() {
             <DialogDescription>
               {createdUserResult
                 ? "The new user account has been set up with complete transaction history and transfers."
-                : "Create a new customer account pre-loaded with $18,276,999.30 balance, 22 oil & gas equipment transactions, and 19 transfers."
+                : "Create a new customer account pre-loaded with your chosen balance, 22 oil & gas equipment transactions, and 19 transfers."
               }
             </DialogDescription>
           </DialogHeader>
@@ -652,9 +654,49 @@ export default function AdminOverview() {
 
               <Separator />
 
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-3">Starting Balance</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setCreateUserForm({ ...createUserForm, balance: "18276999.30" })}
+                    data-testid="option-balance-18m"
+                    className={`rounded-lg border-2 p-4 text-left transition-all ${
+                      createUserForm.balance === "18276999.30"
+                        ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30"
+                        : "border-border bg-muted/30 hover:border-emerald-300"
+                    }`}
+                  >
+                    <p className="text-xs text-muted-foreground mb-1">Option A</p>
+                    <p className="font-bold text-lg text-emerald-700 dark:text-emerald-400">$18 Million</p>
+                    <p className="text-xs text-muted-foreground font-mono">$18,276,999.30</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCreateUserForm({ ...createUserForm, balance: "9230192.20" })}
+                    data-testid="option-balance-9m"
+                    className={`rounded-lg border-2 p-4 text-left transition-all ${
+                      createUserForm.balance === "9230192.20"
+                        ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30"
+                        : "border-border bg-muted/30 hover:border-emerald-300"
+                    }`}
+                  >
+                    <p className="text-xs text-muted-foreground mb-1">Option B</p>
+                    <p className="font-bold text-lg text-emerald-700 dark:text-emerald-400">$9 Million</p>
+                    <p className="text-xs text-muted-foreground font-mono">$9,230,192.20</p>
+                  </button>
+                </div>
+              </div>
+
+              <Separator />
+
               <div className="bg-muted/50 rounded-md p-3">
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  This will create a Business account with a balance of <span className="font-semibold">$18,276,999.30</span>, 22 oil & gas equipment transactions, and 19 wire/external transfers. The user will appear immediately in the Customers list. You can assign an access code later from the Access Codes page.
+                  This will create a Business account with a balance of{" "}
+                  <span className="font-semibold">
+                    {createUserForm.balance === "9230192.20" ? "$9,230,192.20" : "$18,276,999.30"}
+                  </span>
+                  , 22 oil & gas equipment transactions, and 19 wire/external transfers. The user will appear immediately in the Customers list. You can assign an access code later from the Access Codes page.
                 </p>
               </div>
 

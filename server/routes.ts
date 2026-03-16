@@ -577,10 +577,12 @@ export async function registerRoutes(
   // ========== ADMIN: CREATE USER WITH FULL HISTORY ==========
   app.post("/api/admin/create-full-user", requireAdmin, async (req, res) => {
     try {
-      const { firstName, lastName, username, password, address, city, state, zipCode, gender } = req.body;
+      const { firstName, lastName, username, password, address, city, state, zipCode, gender, balance: rawBalance } = req.body;
       if (!firstName || !lastName || !username || !password || !address || !city || !state || !zipCode || !gender) {
         return res.status(400).json({ message: "All fields are required: first name, last name, username, password, address, city, state, zip code, and gender" });
       }
+      const allowedBalances = ["18276999.30", "9230192.20"];
+      const chosenBalance = allowedBalances.includes(rawBalance) ? rawBalance : "18276999.30";
 
       const existing = await db.select().from(customers).where(eq(customers.username, username));
       if (existing.length > 0) {
@@ -607,7 +609,7 @@ export async function registerRoutes(
         accountNumber,
         routingNumber,
         accountType: "business",
-        balance: "18276999.30",
+        balance: chosenBalance,
         status: "active",
         hasDebitCard: true,
         hasCreditCard: true,
