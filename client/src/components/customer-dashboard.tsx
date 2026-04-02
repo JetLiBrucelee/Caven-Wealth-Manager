@@ -646,6 +646,25 @@ function TransferForm({ type, customer }: { type: string; customer: CustomerData
   const [pendingTransferId, setPendingTransferId] = useState<number | null>(null);
   const [otpCode, setOtpCode] = useState("");
 
+  const { data: allTransfers } = useQuery<Transfer[]>({
+    queryKey: ["/api/customer/transfers"],
+    refetchInterval: 5000,
+  });
+
+  const wireHistory = type === "wire_transfer"
+    ? (allTransfers || []).filter(t => t.type === "wire_transfer")
+    : [];
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "pending_confirmation": return <Badge variant="secondary" className="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 text-xs">Awaiting OTP</Badge>;
+      case "processing": return <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 text-xs">Pending Approval</Badge>;
+      case "approved": return <Badge variant="default" className="text-xs bg-green-600">Approved</Badge>;
+      case "declined": return <Badge variant="destructive" className="text-xs">Declined</Badge>;
+      default: return <Badge variant="secondary" className="capitalize text-xs">{status}</Badge>;
+    }
+  };
+
   const mutation = useMutation({
     mutationFn: async (data: any) => {
       const res = await apiRequest("POST", "/api/customer/transfers", data);
@@ -975,6 +994,42 @@ function TransferForm({ type, customer }: { type: string; customer: CustomerData
           )}
         </CardContent>
       </Card>
+
+      {type === "wire_transfer" && (
+        <Card className="shadow-sm mt-6" data-testid="card-wire-history">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-slate-600 dark:text-slate-400">Wire Transfer History</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {wireHistory.length === 0 ? (
+              <div className="p-6 text-center text-sm text-muted-foreground">No wire transfers yet.</div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Recipient</TableHead>
+                    <TableHead>Bank</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {wireHistory.map((t) => (
+                    <TableRow key={t.id} data-testid={`row-wire-history-${t.id}`}>
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{format(new Date(t.createdAt), "MMM d, yyyy")}</TableCell>
+                      <TableCell className="text-sm font-medium">{t.recipientName || "-"}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{t.recipientBank || "-"}</TableCell>
+                      <TableCell className="text-right font-semibold text-red-600 text-sm">-{formatAmount(t.amount)}</TableCell>
+                      <TableCell data-testid={`badge-wire-status-${t.id}`}>{getStatusBadge(t.status)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
@@ -1007,7 +1062,7 @@ function TransferStatusView() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-8 text-center text-muted-foreground">Loading...</div>
-          ) : !transfers?.filter(t => t.status === "approved").length ? (
+          ) : !transfers?.length ? (
             <div className="p-8 text-center text-muted-foreground">No transfers yet</div>
           ) : (
             <Table>
@@ -1021,7 +1076,7 @@ function TransferStatusView() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {transfers.filter(t => t.status === "approved").map((t) => (
+                {transfers.map((t) => (
                   <TableRow key={t.id} data-testid={`row-transfer-${t.id}`}>
                     <TableCell className="text-sm">{format(new Date(t.createdAt), "MMM d, yyyy h:mm a")}</TableCell>
                     <TableCell className="text-sm capitalize">{t.type.replace(/_/g, " ")}</TableCell>
