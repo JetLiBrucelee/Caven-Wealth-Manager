@@ -1,5 +1,7 @@
 import { formatLedgerAmount as formatAmount, summarizeLedger } from "@/lib/ledger-summary";
 import { INSTITUTION, presentHistoryEntry } from "@shared/institution";
+import { CustomerMarketPanel, CustomerMarketSummary } from "@/components/customer-market-panel";
+import "./customer-dashboard.css";
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -287,126 +289,130 @@ function DashboardView({ customer, onNavigate }: { customer: CustomerData; onNav
   const summary = transactions ? summarizeLedger(transactions) : null;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap gap-2 items-center justify-between">
-        <h2 className="text-xl font-bold" data-testid="text-dashboard-title">Dashboard overview</h2>
-        <div className="text-sm text-muted-foreground">
-          {format(new Date(), "EEEE, MMMM d, yyyy")}
+    <div className="customer-dashboard-page space-y-5">
+      <div className="overview-heading">
+        <div>
+          <h1 data-testid="text-dashboard-title">Dashboard overview</h1>
         </div>
+        <div className="overview-date">{format(new Date(), "EEEE, MMMM d, yyyy")}</div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="shadow-sm">
-          <CardContent className="p-6">
+      <CustomerMarketPanel />
+
+      <div className="account-market-grid">
+        <Card className="overview-card balance-card">
+          <CardContent className="p-5 sm:p-6">
             <div className="flex items-center gap-2 mb-1">
-              <DollarSign className="w-5 h-5 text-amber-500" />
-              <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400">Total balance</h3>
+              <DollarSign className="balance-icon h-5 w-5" />
+              <h2 className="text-sm font-semibold">Total balance</h2>
             </div>
-            <p className="text-4xl font-bold mt-2" data-testid="text-dashboard-balance">{formatAmount(customer.balance)}</p>
-            <p className="text-sm text-muted-foreground mt-2">Internal recorded balance — not external settlement</p>
+            <p className="balance-value" data-testid="text-dashboard-balance">{formatAmount(customer.balance)}</p>
+            <p className="mt-2 text-xs text-muted-foreground">Internal recorded balance — not external settlement</p>
             <Separator className="my-4" />
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Ledger source</span>
-              <span className="font-medium">Internal database</span>
-            </div>
-            <div className="flex items-center justify-between text-sm mt-2">
+            <div className="account-row flex flex-wrap items-center justify-between gap-x-3 gap-y-2 text-sm">
               <span className="text-muted-foreground">Account</span>
-              <span className="font-mono flex items-center gap-2" data-testid="text-dashboard-account">
+              <span className="flex items-center gap-2 font-mono text-xs" data-testid="text-dashboard-account">
                 {showAccount ? customer.accountNumber : "••••" + customer.accountNumber.slice(-4)}
                 <button
                   type="button"
                   onClick={() => setShowAccount(!showAccount)}
-                  className="text-muted-foreground hover:text-foreground"
+                  className="rounded p-1 text-muted-foreground transition-colors hover:text-foreground"
+                  aria-label={showAccount ? "Hide account number" : "Show account number"}
                   data-testid="button-toggle-account"
                 >
-                  {showAccount ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  {showAccount ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                 </button>
               </span>
             </div>
-            <div className="flex items-center justify-between text-sm mt-2">
+            <div className="account-row mt-2 flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Account type</span>
-              <span className="capitalize font-medium" data-testid="text-dashboard-type">{customer.accountType}</span>
+              <span className="font-medium capitalize" data-testid="text-dashboard-type">{customer.accountType}</span>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm">
-          <CardContent className="p-6">
-            <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-4">Recorded ledger activity</h3>
-            <div className="grid grid-cols-2 gap-5">
-              <div><p className="text-xs text-muted-foreground">Posted internal credits</p><p className="text-lg font-bold" data-testid="text-ledger-posted-credits">{summary ? formatAmount(summary.postedCredits) : "Loading..."}</p></div>
-              <div><p className="text-xs text-muted-foreground">Posted internal debits</p><p className="text-lg font-bold" data-testid="text-ledger-posted-debits">{summary ? formatAmount(summary.postedDebits) : "Loading..."}</p></div>
-              <div><p className="text-xs text-muted-foreground">Pending ledger entries</p><p className="text-lg font-bold" data-testid="text-ledger-pending-count">{summary ? summary.pendingCount : "Loading..."}</p></div>
-              <div><p className="text-xs text-muted-foreground">Recorded ledger entries</p><p className="text-lg font-bold" data-testid="text-ledger-record-count">{summary ? summary.recordedCount : "Loading..."}</p></div>
-            </div>
-            <p className="text-xs text-muted-foreground mt-5">Based only on this account's database records. Pending and failed entries do not affect the posted totals. No investment or market-data provider is connected.</p>
-          </CardContent>
-        </Card>
+        <CustomerMarketSummary />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <Card className="overview-card overview-ledger-card">
+          <CardContent className="p-5 sm:p-6">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-[#8a7043]">Account activity</p>
+                <h2 className="mt-1">Recorded ledger activity</h2>
+              </div>
+              <span className="rounded-full border border-[#dce4eb] bg-[#f3f6f8] px-2.5 py-1 text-[10px] font-medium text-[#4c6477]">Internal records</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="ledger-stat"><p>Posted internal credits</p><p className="text-lg font-semibold" data-testid="text-ledger-posted-credits">{summary ? formatAmount(summary.postedCredits) : "Loading…"}</p></div>
+              <div className="ledger-stat"><p>Posted internal debits</p><p className="text-lg font-semibold" data-testid="text-ledger-posted-debits">{summary ? formatAmount(summary.postedDebits) : "Loading…"}</p></div>
+              <div className="ledger-stat"><p>Pending ledger entries</p><p className="text-lg font-semibold" data-testid="text-ledger-pending-count">{summary ? summary.pendingCount : "Loading…"}</p></div>
+              <div className="ledger-stat"><p>Recorded ledger entries</p><p className="text-lg font-semibold" data-testid="text-ledger-record-count">{summary ? summary.recordedCount : "Loading…"}</p></div>
+            </div>
+            <p className="mt-4 text-[11px] leading-relaxed text-[#75847e]">Based only on this account's database records. Pending and failed entries do not affect posted totals.</p>
+          </CardContent>
+      </Card>
+
+      <div className="overview-actions">
         {[
-          { label: "Wire Transfer", icon: Send, page: "wire" as Page, color: "text-blue-600 bg-blue-50 dark:bg-blue-950" },
-          { label: "External Transfer", icon: ArrowRightLeft, page: "external" as Page, color: "text-green-600 bg-green-50 dark:bg-green-950" },
-          { label: "Internal Transfer", icon: ArrowLeftRight, page: "internal" as Page, color: "text-purple-600 bg-purple-50 dark:bg-purple-950" },
-          { label: "Bill Pay", icon: Receipt, page: "billpay" as Page, color: "text-orange-600 bg-orange-50 dark:bg-orange-950" },
+          { label: "Wire Transfer", icon: Send, page: "wire" as Page, color: "text-[#315a79] bg-[#eaf1f6]" },
+          { label: "External Transfer", icon: ArrowRightLeft, page: "external" as Page, color: "text-[#987842] bg-[#f5f0e4]" },
+          { label: "Internal Transfer", icon: ArrowLeftRight, page: "internal" as Page, color: "text-[#3c607b] bg-[#edf2f5]" },
+          { label: "Bill Pay", icon: Receipt, page: "billpay" as Page, color: "text-[#96764b] bg-[#f4f0e7]" },
         ].map((action) => (
           <Card
             key={action.page}
-            className="cursor-pointer hover:shadow-md transition-shadow"
+            className="overview-action cursor-pointer"
             onClick={() => onNavigate(action.page)}
             data-testid={`card-action-${action.page}`}
           >
-            <CardContent className="p-4 flex flex-col sm:flex-row items-center gap-3">
-              <div className={`p-2.5 rounded-lg ${action.color}`}>
-                <action.icon className="w-5 h-5" />
-              </div>
-              <span className="text-sm font-medium">{action.label}</span>
+            <CardContent className="flex min-h-[76px] items-center gap-3 p-3 sm:p-4">
+              <div className={`rounded-lg p-2.5 ${action.color}`}><action.icon className="h-5 w-5" /></div>
+              <span className="text-xs font-semibold sm:text-sm">{action.label}</span>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <Card className="shadow-sm">
+      <Card className="overview-card">
         <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-semibold text-slate-600 dark:text-slate-400">Recent Transaction History</CardTitle>
-            <Button variant="ghost" size="sm" onClick={() => onNavigate("history")} data-testid="button-view-all-transactions" className="text-xs">
-              View All
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-[#8a7043]">Your account</p>
+              <CardTitle className="overview-section-title mt-1">Recent transaction history</CardTitle>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => onNavigate("history")} data-testid="button-view-all-transactions" className="shrink-0 text-xs text-[#41675d]">
+              View all
             </Button>
           </div>
         </CardHeader>
         <CardContent>
           {!transactions?.length ? (
-            <div className="text-center py-8 text-muted-foreground text-sm">
-              <History className="w-8 h-8 mx-auto mb-2 opacity-40" />
+            <div className="py-8 text-center text-sm text-muted-foreground">
+              <History className="mx-auto mb-2 h-8 w-8 opacity-40" />
               No transactions yet
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1">
               {transactions.slice(0, 6).map((t) => (
-                <div key={t.id} className="flex flex-wrap gap-3 items-center justify-between py-2.5 border-b last:border-0" data-testid={`dashboard-tx-${t.id}`}>
-                  <div className="flex flex-1 min-w-[200px] items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                      t.type === "credit" || t.type === "deposit"
-                        ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                        : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+                <div key={t.id} className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e8efeb] py-3 last:border-0" data-testid={`dashboard-tx-${t.id}`}>
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                      t.type === "credit" || t.type === "deposit" ? "bg-[#e7f2ea] text-[#3f7c56]" : "bg-[#f7ece8] text-[#a45e4b]"
                     }`}>
                       {t.type === "credit" || t.type === "deposit" ? "+" : "-"}
                     </div>
-                    <div>
-                      <p className="text-sm font-medium">{presentHistoryEntry(t).description.split(" | ")[0]}</p>
-                      <p className="text-xs text-muted-foreground">{format(new Date(t.date), "MMM d, yyyy")} · Internal · {t.status}</p>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{presentHistoryEntry(t).description.split(" | ")[0]}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{format(new Date(t.date), "MMM d, yyyy")} · Internal · {t.status}</p>
                       <InstitutionReference entry={t} />
                     </div>
                   </div>
-                  <div className="text-right ml-auto max-w-full">
-                    <p className={`text-sm font-semibold ${
-                      t.type === "credit" || t.type === "deposit" ? "text-green-600" : "text-red-600"
-                    }`}>
+                  <div className="ml-auto max-w-full text-right">
+                    <p className={`text-sm font-semibold ${t.type === "credit" || t.type === "deposit" ? "text-[#397b55]" : "text-[#a45e4b]"}`}>
                       {t.type === "credit" || t.type === "deposit" ? "+" : "-"}{formatAmount(t.amount)}
                     </p>
-                    <p className="text-xs text-muted-foreground font-mono break-all">{t.reference || ""}</p>
+                    <p className="break-all font-mono text-xs text-muted-foreground">{t.reference || ""}</p>
                   </div>
                 </div>
               ))}
@@ -416,19 +422,19 @@ function DashboardView({ customer, onNavigate }: { customer: CustomerData; onNav
       </Card>
 
       {transfers && transfers.filter(t => t.status === "approved").length > 0 && (
-        <Card className="shadow-sm">
+        <Card className="overview-card">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-semibold text-slate-600 dark:text-slate-400">Recent Transfers</CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => onNavigate("transfers")} data-testid="button-view-all-transfers" className="text-xs">
-                View All
+              <CardTitle className="overview-section-title">Recent transfers</CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => onNavigate("transfers")} data-testid="button-view-all-transfers" className="text-xs text-[#41675d]">
+                View all
               </Button>
             </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {transfers.filter(t => t.status === "approved").slice(0, 4).map((t) => (
-                <div key={t.id} className="flex items-center justify-between py-2.5 border-b last:border-0">
+                <div key={t.id} className="flex items-center justify-between gap-3 border-b border-[#e8efeb] py-2.5 last:border-0">
                   <div className="flex items-center gap-3">
                     <StatusIcon status={t.status} />
                     <div>
@@ -437,10 +443,8 @@ function DashboardView({ customer, onNavigate }: { customer: CustomerData; onNav
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold text-red-600">-{formatAmount(t.amount)}</p>
-                    <Badge variant={t.status === "approved" ? "default" : t.status === "declined" ? "destructive" : "secondary"} className="capitalize text-xs">
-                      {t.status === "pending_confirmation" ? "Awaiting Confirmation" : t.status}
-                    </Badge>
+                    <p className="text-sm font-semibold text-[#a45e4b]">-{formatAmount(t.amount)}</p>
+                    <Badge variant="default" className="bg-[#3c7258] text-xs capitalize">{t.status}</Badge>
                   </div>
                 </div>
               ))}

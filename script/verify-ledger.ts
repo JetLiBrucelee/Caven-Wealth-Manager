@@ -33,6 +33,7 @@ const admin = new Client();
 const user = new Client();
 try {
   await new Client().request("/api/customers", "GET", undefined, 401);
+  await new Client().request("/api/customer/market", "GET", undefined, 401);
   const adminLogin = await admin.request("/api/admin/login", "POST", { username: process.env.ADMIN_USERNAME, password: process.env.ADMIN_PASSWORD });
   const a = await admin.request("/api/admin/create-full-user", "POST", {
     firstName: "Ledger", lastName: "Verification", username: `verify-a-${suffix}`, password, balance: "1000.00",

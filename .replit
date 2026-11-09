@@ -44,3 +44,9 @@ expertMode = true
 [postMerge]
 path = "script/post-merge.sh"
 timeoutMs = 180000
+
+[userenv]
+
+[userenv.shared]
+TWELVE_DATA_DISPLAY_APPROVED = "true"
+TWELVE_DATA_FEED_MODE = "realtime"

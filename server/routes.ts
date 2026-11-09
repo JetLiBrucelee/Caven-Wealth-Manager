@@ -11,6 +11,7 @@ import { insertTransferSchema } from "@shared/schema";
 import { registerLedgerRoutes } from "./ledger-routes";
 import { parseMoneyToCents, formatCents, settleDueLedgerEntries, writeAuditLog } from "./ledger";
 import { rateLimit } from "express-rate-limit";
+import { marketService } from "./market";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -150,6 +151,16 @@ export async function registerRoutes(
     req.session.destroy(() => {
       res.json({ message: "Logged out" });
     });
+  });
+
+  // ========== CUSTOMER MARKET DATA (informational only) ==========
+  app.get("/api/customer/market", requireCustomer, async (_req, res) => {
+    res.set("Cache-Control", "no-store");
+    try {
+      return res.json(await marketService.snapshot());
+    } catch {
+      return res.status(503).json({ message: "Market data is temporarily unavailable" });
+    }
   });
 
   // ========== CUSTOMER TRANSFERS (user-initiated) ==========

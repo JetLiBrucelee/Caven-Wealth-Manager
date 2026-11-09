@@ -1,0 +1,541 @@
+.customer-dashboard-page {
+  --customer-ink: #18313b;
+  --customer-muted: #657980;
+  --customer-line: #dce7e5;
+  --customer-paper: #f3f7f5;
+  --customer-card: #fffefa;
+  --customer-deep: #183b58;
+  --customer-gold: #c79f52;
+  color: var(--customer-ink);
+}
+
+.customer-dashboard-page .overview-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 0 1.25rem;
+}
+
+.customer-dashboard-page .overview-heading h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 750;
+  letter-spacing: -.035em;
+  line-height: 1.1;
+  color: #1a2c3d;
+}
+
+.customer-dashboard-page .overview-date {
+  color: var(--customer-muted);
+  font-size: .8rem;
+  letter-spacing: .025em;
+}
+
+.customer-dashboard-page .account-market-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, .95fr);
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.customer-dashboard-page .overview-card {
+  overflow: hidden;
+  border: 1px solid var(--customer-line);
+  border-radius: 1rem;
+  background: var(--customer-card);
+  box-shadow: 0 8px 24px rgba(29, 60, 59, .045);
+}
+
+.customer-dashboard-page .balance-card {
+  background: #fffefa;
+  border-color: var(--customer-line);
+  color: var(--customer-ink);
+}
+
+.customer-dashboard-page .balance-icon {
+  color: #dfc17e;
+}
+
+.customer-dashboard-page .balance-value {
+  margin-top: .45rem;
+  font-size: clamp(1.6rem, 3vw, 2rem);
+  font-weight: 750;
+  letter-spacing: -.055em;
+  line-height: 1;
+  overflow-wrap: anywhere;
+}
+
+.customer-dashboard-page .overview-ledger-card h2,
+.customer-dashboard-page .overview-section-title {
+  font-family: inherit;
+  font-size: 1.14rem;
+  font-weight: 600;
+  letter-spacing: -.02em;
+  color: var(--customer-deep);
+}
+
+.customer-dashboard-page .ledger-stat {
+  padding: .95rem .85rem;
+  border: 1px solid #e6ebef;
+  border-radius: .75rem;
+  background: #f7f9fb;
+}
+
+.customer-dashboard-page .ledger-stat p:first-child {
+  color: var(--customer-muted);
+  font-size: .7rem;
+  line-height: 1.35;
+}
+
+.customer-dashboard-page .ledger-stat p:last-child {
+  margin-top: .3rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--customer-ink);
+}
+
+.customer-dashboard-page .overview-actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .75rem;
+}
+
+.customer-dashboard-page .overview-action {
+  border: 1px solid var(--customer-line);
+  border-radius: .85rem;
+  background: rgba(255, 254, 250, .9);
+  transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease;
+}
+
+.customer-dashboard-page .overview-action:hover {
+  transform: translateY(-2px);
+  border-color: #b9d0c8;
+  background: #fff;
+}
+
+.customer-dashboard-page .overview-action:focus-visible,
+.customer-dashboard-page button:focus-visible,
+.customer-dashboard-page a:focus-visible {
+  outline: 3px solid rgba(199, 159, 82, .62);
+  outline-offset: 2px;
+}
+
+.customer-dashboard-page .market-panel {
+  overflow: hidden;
+  border: 1px solid #dbe6e1;
+  border-radius: 1rem;
+  background: #fffefa;
+  box-shadow: 0 8px 24px rgba(29, 60, 59, .045);
+  animation: caven-customer-market-enter 420ms ease both;
+}
+
+.customer-dashboard-page .market-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.25rem;
+  padding: 1.2rem 1.35rem 1rem;
+  border-bottom: 1px solid #e8efeb;
+}
+
+.customer-dashboard-page .market-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  color: #8a7043;
+  font-size: .65rem;
+  font-weight: 700;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+
+.customer-dashboard-page .market-panel-title {
+  margin-top: .25rem;
+  color: #1c3d57;
+  font-family: inherit;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -.025em;
+}
+
+.customer-dashboard-page .market-panel-subtitle {
+  margin-top: .25rem;
+  color: #73847f;
+  font-size: .75rem;
+}
+
+.customer-dashboard-page .market-panel-meta {
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: .35rem;
+  text-align: right;
+}
+
+.customer-dashboard-page .market-refresh-label {
+  color: #345b78;
+  font-size: .7rem;
+  font-weight: 650;
+}
+
+.customer-dashboard-page .market-age {
+  display: inline-flex;
+  align-items: center;
+  gap: .28rem;
+  color: #87958f;
+  font-size: .65rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.customer-dashboard-page .market-refresh-button,
+.customer-dashboard-page .market-retry {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+  min-height: 2rem;
+  padding: .35rem .65rem;
+  border: 1px solid #d9e2e9;
+  border-radius: .55rem;
+  background: #f7f9fb;
+  color: #315977;
+  font-size: .7rem;
+  font-weight: 650;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+.customer-dashboard-page .market-refresh-button:hover:not(:disabled),
+.customer-dashboard-page .market-retry:hover {
+  border-color: #bccbd7;
+  background: #edf3f7;
+}
+
+.customer-dashboard-page .market-refresh-button:disabled {
+  cursor: wait;
+  opacity: .65;
+}
+
+.customer-dashboard-page .market-refreshing {
+  animation: caven-customer-market-spin 1s linear infinite;
+}
+
+.customer-dashboard-page .market-content {
+  padding: 1rem 1.35rem 1.2rem;
+}
+
+.customer-dashboard-page .market-quote-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .75rem;
+}
+
+.customer-dashboard-page .market-quote {
+  min-width: 0;
+  padding: .9rem 1rem .8rem;
+  border: 1px solid #e4ece7;
+  border-radius: .8rem;
+  background: linear-gradient(145deg, #f9fbfc, #f3f6f8);
+}
+
+.customer-dashboard-page .market-quote-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: .35rem;
+}
+
+.customer-dashboard-page .market-symbol {
+  color: #1d405d;
+  font-size: .86rem;
+  font-weight: 750;
+  letter-spacing: .01em;
+}
+
+.customer-dashboard-page .market-name {
+  max-width: 17rem;
+  margin-top: .08rem;
+  overflow: hidden;
+  color: #7c8c86;
+  font-size: .66rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.customer-dashboard-page .market-status {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  padding: .2rem .42rem;
+  border-radius: 999px;
+  font-size: .58rem;
+  font-weight: 700;
+  letter-spacing: .01em;
+}
+
+.customer-dashboard-page .market-status-realtime { background: #e5f3e9; color: #2e714a; }
+.customer-dashboard-page .market-status-delayed { background: #f8f0dd; color: #86652d; }
+.customer-dashboard-page .market-status-closed { background: #edf1ef; color: #63746c; }
+.customer-dashboard-page .market-status-stale { background: #faebdf; color: #9a552d; }
+.customer-dashboard-page .market-status-unavailable { background: #edf0ef; color: #75817b; }
+.customer-dashboard-page .market-status-neutral { background: #edf2f5; color: #536a7c; }
+
+.customer-dashboard-page .market-price {
+  margin-top: .7rem;
+  color: #1d3439;
+  font-size: clamp(1.35rem, 2.4vw, 1.8rem);
+  font-weight: 670;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.045em;
+  line-height: 1.1;
+}
+
+.customer-dashboard-page .market-quote-meta {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  min-height: 1.15rem;
+  margin-top: .3rem;
+  color: #7d8c86;
+  font-size: .68rem;
+}
+
+.customer-dashboard-page .market-change { color: #71827b; font-weight: 700; font-variant-numeric: tabular-nums; }
+.customer-dashboard-page .market-change-up { color: #32805a; }
+.customer-dashboard-page .market-change-down { color: #ad5b4b; }
+.customer-dashboard-page .market-change-neutral { color: #687d8a; }
+
+.customer-dashboard-page .market-summary-card {
+  min-width: 0;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid #dbe6e1;
+  border-radius: 1rem;
+  background: #fffefa;
+  box-shadow: 0 8px 24px rgba(29, 60, 59, .045);
+}
+
+.customer-dashboard-page .market-summary-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  margin-bottom: .35rem;
+}
+
+.customer-dashboard-page .market-summary-card-heading h2 {
+  margin-top: .2rem;
+  color: #1d3448;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -.025em;
+}
+
+.customer-dashboard-page .market-summary-rows {
+  display: grid;
+}
+
+.customer-dashboard-page .market-summary-row {
+  min-width: 0;
+  padding: .65rem 0;
+  border-top: 1px solid #e8efeb;
+}
+
+.customer-dashboard-page .market-summary-instrument,
+.customer-dashboard-page .market-summary-values {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+}
+
+.customer-dashboard-page .market-summary-name { min-width: 0; }
+.customer-dashboard-page .market-summary-name h3 {
+  overflow: hidden;
+  color: #203a4b;
+  font-size: .76rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.customer-dashboard-page .market-summary-name p {
+  margin-top: .08rem;
+  color: #83918e;
+  font-size: .61rem;
+}
+
+.customer-dashboard-page .market-summary-values {
+  justify-content: flex-start;
+  margin-top: .35rem;
+}
+.customer-dashboard-page .market-summary-values strong {
+  color: #203541;
+  font-size: 1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.025em;
+}
+.customer-dashboard-page .market-summary-values .market-change { font-size: .69rem; }
+
+.customer-dashboard-page .market-summary-detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .25rem .65rem;
+  margin-top: .25rem;
+  color: #82908a;
+  font-size: .59rem;
+}
+.customer-dashboard-page .market-summary-kind {
+  color: #647a84;
+  font-weight: 650;
+}
+.customer-dashboard-page .market-summary-time { font-variant-numeric: tabular-nums; }
+.customer-dashboard-page .market-summary-footer {
+  margin-top: .55rem;
+  padding-top: .55rem;
+  border-top: 1px solid #e8efeb;
+  color: #85938d;
+  font-size: .6rem;
+}
+.customer-dashboard-page .market-summary-error {
+  padding: .8rem 0;
+  color: #8e5445;
+  font-size: .72rem;
+}
+.customer-dashboard-page .market-summary-loading { display: grid; gap: .5rem; padding: .7rem 0; }
+.customer-dashboard-page .market-summary-skeleton {
+  height: 3.3rem;
+  border-radius: .55rem;
+  background: linear-gradient(90deg, #eef3ef 25%, #f7f9f7 50%, #eef3ef 75%);
+  background-size: 200% 100%;
+  animation: caven-customer-market-skeleton 1.6s ease-in-out infinite;
+}
+
+.customer-dashboard-page .market-quote-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: .2rem .6rem;
+  margin-top: .7rem;
+  padding-top: .55rem;
+  border-top: 1px solid #e4ece7;
+  color: #8a9791;
+  font-size: .58rem;
+}
+
+.customer-dashboard-page .market-summary {
+  margin-top: 1rem;
+  padding: .85rem 1rem;
+  border-radius: .75rem;
+  background: #f1f6f3;
+}
+
+.customer-dashboard-page .market-summary-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .5rem;
+}
+
+.customer-dashboard-page .market-summary-heading h3 { color: #244744; font-size: .76rem; font-weight: 700; }
+.customer-dashboard-page .market-summary-heading span { color: #85958d; font-size: .62rem; }
+
+.customer-dashboard-page .market-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: .65rem;
+}
+
+.customer-dashboard-page .market-summary-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: .2rem .7rem;
+  padding: .45rem .7rem;
+  border-left: 1px solid #dce7e1;
+  color: #63786f;
+  font-size: .68rem;
+}
+
+.customer-dashboard-page .market-summary-item:first-child { border-left: 0; padding-left: 0; }
+.customer-dashboard-page .market-summary-item strong { color: #294442; font-size: .72rem; font-variant-numeric: tabular-nums; }
+.customer-dashboard-page .market-summary-item > span:last-child { grid-column: 1 / -1; font-size: .61rem; }
+
+.customer-dashboard-page .market-panel-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  padding: .7rem 1.35rem;
+  border-top: 1px solid #e8efeb;
+  color: #85938d;
+  font-size: .62rem;
+}
+
+.customer-dashboard-page .market-panel-footer > span { min-width: 0; }
+.customer-dashboard-page .market-panel-footer a {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: .25rem;
+  color: #345b78;
+  font-weight: 650;
+  text-decoration: none;
+}
+.customer-dashboard-page .market-panel-footer a:hover { text-decoration: underline; }
+
+.customer-dashboard-page .market-message {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .85rem 1rem;
+  border: 1px solid #e6e9df;
+  border-radius: .75rem;
+  background: #faf9f3;
+}
+.customer-dashboard-page .market-message strong { color: #40564d; font-size: .77rem; }
+.customer-dashboard-page .market-message p { margin-top: .15rem; color: #7c8982; font-size: .68rem; line-height: 1.45; }
+.customer-dashboard-page .market-message-error { border-color: #ecd9d1; background: #fbf4f0; }
+.customer-dashboard-page .market-message-error strong { color: #874b3d; }
+.customer-dashboard-page .market-loading { padding: 1rem 1.35rem 1.2rem; }
+.customer-dashboard-page .market-skeleton-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
+.customer-dashboard-page .market-skeleton {
+  height: 7rem;
+  border-radius: .8rem;
+  background: linear-gradient(90deg, #eef3ef 25%, #f7f9f7 50%, #eef3ef 75%);
+  background-size: 200% 100%;
+  animation: caven-customer-market-skeleton 1.6s ease-in-out infinite;
+}
+.customer-dashboard-page .market-skeleton-title { width: 30%; height: .8rem; margin-bottom: .8rem; }
+
+@keyframes caven-customer-market-spin { to { transform: rotate(360deg); } }
+@keyframes caven-customer-market-enter { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes caven-customer-market-skeleton { 0%, 100% { opacity: .65; } 50% { opacity: 1; } }
+
+@media (max-width: 767px) {
+  .customer-dashboard-page .overview-heading { align-items: flex-start; flex-direction: column; gap: .5rem; }
+  .customer-dashboard-page .account-market-grid { grid-template-columns: minmax(0, 1fr); }
+  .customer-dashboard-page .overview-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .customer-dashboard-page .market-panel-header { flex-direction: column; padding: 1rem; }
+  .customer-dashboard-page .market-panel-meta { width: 100%; align-items: flex-start; text-align: left; }
+  .customer-dashboard-page .market-content,
+  .customer-dashboard-page .market-loading { padding: .8rem 1rem 1rem; }
+  .customer-dashboard-page .market-quote-grid { grid-template-columns: minmax(0, 1fr); }
+  .customer-dashboard-page .market-quote { padding: .85rem; }
+  .customer-dashboard-page .market-panel-footer { align-items: flex-start; flex-direction: column; padding: .7rem 1rem; }
+  .customer-dashboard-page .market-message { align-items: flex-start; flex-direction: column; }
+  .customer-dashboard-page .market-skeleton-grid { grid-template-columns: minmax(0, 1fr); }
+  .customer-dashboard-page .market-skeleton { height: 5rem; }
+  .customer-dashboard-page .market-summary-card { padding: 1rem; }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .customer-dashboard-page .account-market-grid { grid-template-columns: minmax(0, 1fr); }
+  .customer-dashboard-page .market-quote-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .customer-dashboard-page .market-panel,
+  .customer-dashboard-page .market-skeleton,
+  .customer-dashboard-page .market-summary-skeleton,
+  .customer-dashboard-page .market-refreshing { animation: none; }
+  .customer-dashboard-page .overview-action { transition: none; }
+}

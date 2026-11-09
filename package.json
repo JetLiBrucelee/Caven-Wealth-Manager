@@ -9,6 +9,7 @@
     "start": "NODE_ENV=production node dist/index.cjs",
     "check": "tsc",
     "test:ledger": "tsx --test server/ledger.test.ts",
+    "test:market": "tsx --test server/market.test.ts",
     "verify:ledger": "tsx script/verify-ledger.ts",
     "db:push": "drizzle-kit push"
   },
