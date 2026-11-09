@@ -15,6 +15,7 @@ This is **Caven Wealth & Finance**, an internal-ledger financial application. It
 - Ledger amounts use exact cents. Posted entries are immutable; corrections use referenced offsetting entries. Accounts with ledger or transfer history cannot be deleted.
 - Future calendar dates remain Pending until their day arrives in `America/New_York`. Settlement runs every minute and on ledger/account reads, catches up after downtime, and posts each entry once. Insufficient-funds scheduled debits fail without reducing the balance.
 - `npm run check`, `npm run test:ledger`, and `npm run build` check code, money/date rules, and production bundling.
+- Post-merge setup restores locked dependencies, checks TypeScript, and rebuilds the app. It does not automatically approve schema changes or seed ledger data; database changes require separate review.
 - `npm run verify:ledger` exercises the running development preview with temporary test accounts and removes their records afterward. It uses admin secrets without displaying them and checks authenticated zero/opening-balance dashboards in Chromium (`CHROMIUM_PATH` can override the executable). Test screenshots go to ignored `generated-artifacts/`.
 - Production schema changes for Replit-managed PostgreSQL are applied by Publish, not by startup code or deployment build hooks.
 
