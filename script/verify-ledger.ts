@@ -4,6 +4,7 @@ import { and, eq, inArray, or } from "drizzle-orm";
 import { db, pool } from "../server/db";
 import { accessCodes, auditLogs, chatMessages, customers, transactions, transferConfirmationCodes, transfers } from "../shared/schema";
 import { verifyDashboard } from "./verify-dashboard";
+import { INSTITUTION, LEGACY_OPENING_DESCRIPTION, OPENING_BALANCE_DESCRIPTION } from "../shared/institution";
 
 const base = `https://${process.env.REPLIT_DEV_DOMAIN}`;
 assert.ok(process.env.REPLIT_DEV_DOMAIN, "The development preview domain is required");
@@ -39,6 +40,16 @@ try {
     firstName: "Ledger", lastName: "Recipient", username: `verify-b-${suffix}`, password, balance: "0.00",
   }, 201);
   ids.push(b.customer.id);
+  assert.match(a.customer.accountNumber, /^\d{12}$/);
+  assert.match(b.customer.accountNumber, /^\d{12}$/);
+  assert.notEqual(a.customer.accountNumber, b.customer.accountNumber);
+  assert.notEqual(a.customer.accountNumber, INSTITUTION.accountReference);
+  assert.notEqual(b.customer.accountNumber, INSTITUTION.accountReference);
+  const originalAccountNumber = a.customer.accountNumber;
+  const openingHistory = await admin.request(`/api/transactions/customer/${a.customer.id}`);
+  const opening = openingHistory[0];
+  assert.equal(opening.description, OPENING_BALANCE_DESCRIPTION);
+  assert.equal(opening.institutionAccountReference, INSTITUTION.accountReference);
   assert.equal(a.transactionsCreated, 1);
   assert.equal(a.transfersCreated, 0);
   assert.equal(b.transactionsCreated, 0);
@@ -47,8 +58,21 @@ try {
   const login = await user.request("/api/customer/verify-code", "POST", { code: a.accessCode });
   assert.equal(login.customer.balance, "1000.00");
   await verifyDashboard({ base, username: b.customer.username, password, code: b.accessCode, balance: "$0.00", credits: "$0.00", label: "zero", mobile: true });
-  await verifyDashboard({ base, username: a.customer.username, password, code: a.accessCode, balance: "$1,000.00", credits: "$1,000.00", label: "opening" });
   assert.equal((await admin.request(`/api/customers/${a.customer.id}/fund`, "POST", { amount: "50.10" })).balance, "1050.10");
+  const fundingHistory = await admin.request(`/api/transactions/customer/${a.customer.id}`);
+  const funding = fundingHistory.find((entry: any) => entry.reference.startsWith("CREDIT-"));
+  assert.equal(funding.institutionAccountReference, INSTITUTION.accountReference);
+  await verifyDashboard({ base, username: a.customer.username, password, code: a.accessCode, balance: "$1,050.10", credits: "$1,050.10", label: "opening", historyEntries: [
+    { id: opening.id, description: OPENING_BALANCE_DESCRIPTION, institutionReference: INSTITUTION.accountReference },
+    { id: funding.id, description: funding.description, institutionReference: INSTITUTION.accountReference },
+  ] });
+  const legacy = await admin.request(`/api/customers/${b.customer.id}/history`, "POST", {
+    type: "credit", amount: "1.00", description: LEGACY_OPENING_DESCRIPTION, reference: `OPEN-legacy-${suffix}`, date: new Date().toISOString(),
+  }, 201);
+  await verifyDashboard({ base, username: b.customer.username, password, code: b.accessCode, balance: "$1.00", credits: "$1.00", label: "legacy-mobile", mobile: true, historyEntries: [
+    { id: legacy.id, description: OPENING_BALANCE_DESCRIPTION, institutionReference: INSTITUTION.accountReference },
+  ] });
+  assert.equal((await admin.request(`/api/transactions/${legacy.id}`)).description, LEGACY_OPENING_DESCRIPTION);
   await admin.request(`/api/customers/${a.customer.id}/history`, "POST", {
     type: "credit", amount: "0.10", description: "Verification current entry", date: new Date().toISOString(), status: "completed",
   }, 201);
@@ -71,7 +95,7 @@ try {
   await admin.request(`/api/transfers/${internal.id}/status`, "PATCH", { status: "approved" });
   await admin.request(`/api/transfers/${internal.id}/status`, "PATCH", { status: "approved" });
   assert.equal((await user.request("/api/customer/me")).balance, "949.95");
-  assert.equal((await admin.request(`/api/customers/${b.customer.id}`)).balance, "100.25");
+  assert.equal((await admin.request(`/api/customers/${b.customer.id}`)).balance, "101.25");
   await admin.request(`/api/customers/${a.customer.id}/history`, "POST", {
     type: "debit", amount: "2000.00", description: "Verification insufficient funds", date: new Date().toISOString(),
   }, 400);
@@ -92,12 +116,17 @@ try {
   const history = await user.request("/api/customer/transactions");
   assert.ok(history.every((entry: any) => entry.source === "internal"));
   assert.equal(history.filter((entry: any) => entry.reference === `TRANSFER-${internal.id}`).length, 1);
+  const outgoing = history.find((entry: any) => entry.reference === `TRANSFER-${internal.id}`);
+  assert.equal(outgoing.beneficiaryAccount, b.customer.accountNumber);
+  assert.equal(outgoing.institutionAccountReference, null);
+  assert.equal((await admin.request(`/api/customers/${a.customer.id}`)).accountNumber, originalAccountNumber);
   await admin.request(`/api/customers/${a.customer.id}`, "DELETE", undefined, 409);
   await db.update(accessCodes).set({ expiresAt: new Date(Date.now() - 1000) }).where(eq(accessCodes.customerId, a.customer.id));
   await user.request("/api/customer/login", "POST", { username: a.customer.username, password });
   await user.request("/api/customer/verify-code", "POST", { code: a.accessCode }, 401);
   const audit = await admin.request("/api/admin/audit-logs");
   assert.ok(audit.some((entry: any) => entry.action === "scheduled_ledger_entry_posted" && entry.entityId === scheduled.id));
+  assert.ok(audit.some((entry: any) => entry.entityType === "transaction" && entry.entityId === opening.id && entry.actorType === "admin" && entry.adminId));
   console.log("Ledger verification passed: authenticated zero/opening-balance dashboards, account setup, scoped codes, exact credits, scheduled posting, internal recipients, idempotent approvals, concurrent outflows, immutable history, and audit records.");
 } finally {
   await user.request("/api/customer/logout", "POST", {}).catch(() => {});

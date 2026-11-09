@@ -7,6 +7,8 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { storage } from "./storage";
+import { INSTITUTION, OPENING_BALANCE_DESCRIPTION } from "@shared/institution";
+import { allocateCustomerAccount } from "./customer-account";
 import {
   createLedgerEntryInTransaction, formatCents, parseMoneyToCents, writeAuditLog,
 } from "./ledger";
@@ -28,24 +30,24 @@ export function registerLedgerRoutes(app: Express, requireAdmin: RequestHandler)
       if (![req.body.firstName, req.body.lastName, req.body.username].every((value) => typeof value === "string" && value.trim())) {
         throw new Error("First name, last name, and username are required");
       }
-      const data = insertCustomerSchema.parse({
+      const data = insertCustomerSchema.omit({ accountNumber: true }).parse({
         ...req.body,
         password: await bcrypt.hash(req.body.password, 10),
-        accountNumber: `INT-${randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase()}`,
         routingNumber: "INTERNAL",
         balance: "0.00",
         accountType: req.body.accountType || "business",
         memberSince: req.body.memberSince ? new Date(req.body.memberSince) : new Date(),
       });
       const result = await db.transaction(async (tx) => {
-        const [customer] = await tx.insert(customers).values(data).returning();
+        const customer = await allocateCustomerAccount(tx, data);
         if (openingCents > 0n) {
           await createLedgerEntryInTransaction(tx, {
             adminId: (req.session as any).adminId,
             customerId: customer.id,
             type: "credit",
             amount: formatCents(openingCents),
-            description: "Internal opening balance recorded by administrator",
+            description: OPENING_BALANCE_DESCRIPTION,
+            institutionAccountReference: INSTITUTION.accountReference,
             date: new Date(),
             reference: `OPEN-${randomUUID()}`,
           });
@@ -108,6 +110,7 @@ export function registerLedgerRoutes(app: Express, requireAdmin: RequestHandler)
               type: difference > 0n ? "credit" : "debit",
               amount: formatCents(difference > 0n ? difference : -difference),
               description: "Internal balance adjustment recorded by administrator",
+              institutionAccountReference: INSTITUTION.accountReference,
               date: new Date(), reference: `ADJUST-${randomUUID()}`,
             });
           }
@@ -176,7 +179,8 @@ export function registerLedgerRoutes(app: Express, requireAdmin: RequestHandler)
       await db.transaction((tx) => createLedgerEntryInTransaction(tx, {
         adminId: (req.session as any).adminId, customerId: Number(req.params.id),
         type: "credit", amount: req.body.amount,
-        description: req.body.description || "Internal credit recorded by administrator",
+         description: req.body.description || `Internal credit recorded by ${INSTITUTION.name}`,
+         institutionAccountReference: INSTITUTION.accountReference,
         date: new Date(), reference: `CREDIT-${randomUUID()}`,
       }));
       const customer = await storage.getCustomer(Number(req.params.id));

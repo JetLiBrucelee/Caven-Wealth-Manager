@@ -10,6 +10,7 @@ This is **Caven Wealth & Finance**, an internal-ledger financial application. It
 - Required secrets: `SESSION_SECRET`, `ADMIN_USERNAME`, and `ADMIN_PASSWORD`. The database supplies `DATABASE_URL`. Never add credential values to source files or logs.
 - Admin credentials bootstrap the matching admin account only when it does not already exist. They do not silently overwrite an existing database password.
 - New accounts have no generated sample transactions or transfers. An optional opening amount is an audited Internal credit, and a customer-specific login code is assigned for 10 minutes.
+- New customer account numbers are unique 12-digit identifiers, separate from the institution's reserved reference. Preserve existing identifiers. Customer-facing opening labels use the institution name; actual operators remain recorded in audit logs. Legacy label normalization is display-only, never a rewrite of posted records.
 - Customer summaries must use recorded ledger entries only. Do not add preset investment positions, returns, yields, risk scores, advisor messages, or simulated live-market information.
 - Ledger amounts use exact cents. Posted entries are immutable; corrections use referenced offsetting entries. Accounts with ledger or transfer history cannot be deleted.
 - Future calendar dates remain Pending until their day arrives in `America/New_York`. Settlement runs every minute and on ledger/account reads, catches up after downtime, and posts each entry once. Insufficient-funds scheduled debits fail without reducing the balance.

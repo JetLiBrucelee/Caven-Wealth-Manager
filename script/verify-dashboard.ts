@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 import { chromium } from "playwright-core";
+import { INSTITUTION } from "../shared/institution";
 
 export async function verifyDashboard(input: {
   base: string; username: string; password: string; code: string;
   balance: string; credits: string; label: string; mobile?: boolean;
+  historyEntries?: { id: number; description: string; institutionReference: string | null }[];
 }) {
   const browser = await chromium.launch({
     executablePath: process.env.CHROMIUM_PATH || "/repl/tools/bin/chromium",
@@ -29,6 +31,7 @@ export async function verifyDashboard(input: {
     assert.equal(await page.getByTestId("text-ledger-posted-debits").textContent(), "$0.00");
     assert.equal(await page.getByTestId("text-ledger-pending-count").textContent(), "0");
     assert.doesNotMatch(await page.locator("body").innerText(), /YTD|Dividend Yield|Risk Score|Portfolio Allocation|Today's advisor note|market open|Current U.S. Stocks/);
+    assert.doesNotMatch(await page.locator("body").innerText(), /Internal ledger: balances and activity are internal application records/);
     await page.reload();
     await page.waitForFunction((expected) => document.querySelector('[data-testid="text-dashboard-balance"]')?.textContent === expected, input.balance);
     if (input.mobile) {
@@ -43,6 +46,29 @@ export async function verifyDashboard(input: {
     assert.deepEqual(errors, []);
     await mkdir("generated-artifacts", { recursive: true });
     await page.screenshot({ path: `generated-artifacts/ledger-dashboard-${input.label}.png`, fullPage: true });
+    if (input.historyEntries?.length) {
+      for (const entry of input.historyEntries) {
+        const recent = page.getByTestId(`dashboard-tx-${entry.id}`);
+        assert.ok((await recent.innerText()).includes(entry.description));
+      }
+      if (input.mobile) await page.getByTestId("button-customer-mobile-menu").click();
+      await page.getByTestId("link-customer-history").click();
+      for (const entry of input.historyEntries) {
+        const row = page.getByTestId(`row-transaction-${entry.id}`);
+        await row.waitFor();
+        assert.ok((await row.innerText()).includes(entry.description));
+        assert.match(await row.innerText(), /Internal/);
+        await row.click();
+        if (entry.institutionReference) {
+          assert.ok((await row.innerText()).includes(INSTITUTION.name));
+          assert.ok((await row.innerText()).includes(`Institution account reference: ${entry.institutionReference}`));
+        } else assert.equal(await row.locator('[data-testid^="institution-reference-"]').count(), 0);
+        await row.click();
+      }
+      await page.getByTestId(`row-transaction-${input.historyEntries[0].id}`).click();
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "History must not overflow horizontally");
+      await page.screenshot({ path: `generated-artifacts/ledger-history-${input.label}.png`, fullPage: true });
+    }
   } finally {
     await context.request.post("/api/customer/logout").catch(() => {});
     await context.close();

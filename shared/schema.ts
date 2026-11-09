@@ -62,6 +62,7 @@ export const transactions = pgTable("transactions", {
   beneficiaryAccount: text("beneficiary_account"),
   source: text("source").notNull().default("internal"),
   balanceAfter: text("balance_after"),
+  institutionAccountReference: text("institution_account_reference"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

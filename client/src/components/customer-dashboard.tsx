@@ -1,4 +1,5 @@
 import { formatLedgerAmount as formatAmount, summarizeLedger } from "@/lib/ledger-summary";
+import { INSTITUTION, presentHistoryEntry } from "@shared/institution";
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -115,6 +116,7 @@ interface Transaction {
   beneficiaryAccount: string | null;
   source: string;
   balanceAfter: string | null;
+  institutionAccountReference: string | null;
 }
 
 type Page = "dashboard" | "wire" | "external" | "internal" | "billpay" | "profile" | "history" | "transfers" | "cards" | "support" | "settings";
@@ -250,9 +252,6 @@ export default function CustomerDashboard({ customer: initialCustomer, onLogout 
           </DropdownMenu>
         </header>
         <main className="flex-1 overflow-auto p-4 md:p-6">
-          <div className="mb-4 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-950">
-            Internal ledger: balances and activity are internal application records. No external settlement provider is connected. Pending entries do not change the balance until posted.
-          </div>
           {currentPage === "dashboard" && <DashboardView customer={customer} onNavigate={setCurrentPage} />}
           {currentPage === "wire" && <TransferForm type="wire_transfer" customer={customer} />}
           {currentPage === "external" && <TransferForm type="external_transfer" customer={customer} />}
@@ -386,8 +385,8 @@ function DashboardView({ customer, onNavigate }: { customer: CustomerData; onNav
           ) : (
             <div className="space-y-2">
               {transactions.slice(0, 6).map((t) => (
-                <div key={t.id} className="flex items-center justify-between py-2.5 border-b last:border-0" data-testid={`dashboard-tx-${t.id}`}>
-                  <div className="flex items-center gap-3">
+                <div key={t.id} className="flex flex-wrap gap-3 items-center justify-between py-2.5 border-b last:border-0" data-testid={`dashboard-tx-${t.id}`}>
+                  <div className="flex flex-1 min-w-[200px] items-center gap-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
                       t.type === "credit" || t.type === "deposit"
                         ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
@@ -396,17 +395,18 @@ function DashboardView({ customer, onNavigate }: { customer: CustomerData; onNav
                       {t.type === "credit" || t.type === "deposit" ? "+" : "-"}
                     </div>
                     <div>
-                      <p className="text-sm font-medium">{t.description.split(" | ")[0]}</p>
+                      <p className="text-sm font-medium">{presentHistoryEntry(t).description.split(" | ")[0]}</p>
                       <p className="text-xs text-muted-foreground">{format(new Date(t.date), "MMM d, yyyy")} · Internal · {t.status}</p>
+                      <InstitutionReference entry={t} />
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right ml-auto max-w-full">
                     <p className={`text-sm font-semibold ${
                       t.type === "credit" || t.type === "deposit" ? "text-green-600" : "text-red-600"
                     }`}>
                       {t.type === "credit" || t.type === "deposit" ? "+" : "-"}{formatAmount(t.amount)}
                     </p>
-                    <p className="text-xs text-muted-foreground font-mono">{t.reference || ""}</p>
+                    <p className="text-xs text-muted-foreground font-mono break-all">{t.reference || ""}</p>
                   </div>
                 </div>
               ))}
@@ -456,6 +456,14 @@ function StatusIcon({ status }: { status: string }) {
   if (status === "approved") return <CheckCircle2 className="w-5 h-5 text-green-500" />;
   if (status === "declined") return <XCircle className="w-5 h-5 text-red-500" />;
   return <Clock className="w-5 h-5 text-amber-500" />;
+}
+
+function InstitutionReference({ entry }: { entry: Transaction }) {
+  const account = presentHistoryEntry(entry).institutionAccountReference;
+  if (!account) return null;
+  return <p className="text-xs text-muted-foreground mt-1 break-words" data-testid={`institution-reference-${entry.id}`}>
+    {INSTITUTION.name} · Institution account reference: <span className="font-mono">{account}</span>
+  </p>;
 }
 
 function TransferForm({ type, customer }: { type: string; customer: CustomerData }) {
@@ -950,7 +958,7 @@ function TransactionHistoryView() {
           ) : (
             <div className="divide-y">
               {transactions.map((t) => {
-                const { title, details } = parseDescription(t.description);
+                const { title, details } = parseDescription(presentHistoryEntry(t).description);
                 const isCredit = t.type.includes("credit") || t.type.includes("deposit");
                 const isExpanded = expandedId === t.id;
                 return (
@@ -965,9 +973,9 @@ function TransactionHistoryView() {
                         <div className="flex items-center gap-3">
                           <div className={`w-2 h-2 rounded-full shrink-0 ${isCredit ? "bg-green-500" : "bg-red-500"}`} />
                           <div className="min-w-0">
-                            <p className="text-sm font-medium truncate">{title}</p>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {format(new Date(t.date), "MMM d, yyyy")} · Internal · {t.reference || "-"}
+                            <p className="text-sm font-medium break-words">{title}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5 break-all">
+                              {format(new Date(t.date), "MMM d, yyyy")} · Internal · {t.status} · {t.reference || "-"}
                             </p>
                           </div>
                         </div>
@@ -979,6 +987,7 @@ function TransactionHistoryView() {
                         <p className="text-xs text-muted-foreground capitalize">{t.type.replace(/_/g, " ")}</p>
                       </div>
                     </div>
+                    {isExpanded && <div className="px-5 pb-3"><InstitutionReference entry={t} /></div>}
                     {isExpanded && details && (
                       <div className="px-5 pb-4 ml-5 border-l-2 border-muted ml-[1.6rem]">
                         <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm pl-3">

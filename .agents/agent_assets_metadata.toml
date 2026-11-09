@@ -14,3 +14,31 @@ mtime_ms = 1794230931033
 storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:849418b0-03f9-4793-a140-a83acc9ddfd9/db7a0cc3-69a1-47b0-872b-79ca270fe0f4/39eea5da-2ef1-47e4-b34e-b423f9b31574"
 storage_version_token = "1794231173775961"
 content_type = "image/png"
+
+[[outputs]]
+id = "zZvZjRJUEWtXLgD3SCeQk"
+uri = "file://generated-artifacts/ledger-history-opening.png"
+type = "image"
+title = "Updated history — desktop"
+description = "Temporary test account showing the institution wording, opening credit, funding credit, and institution account reference. The large in-app banner has been removed."
+logical_id = "cf55f094-3bc5-485d-b176-dfd1c5bc68e4"
+content_hash = "sha256:3957670fff832ee6c65d42ad5c579474991523793f8e7044f0f9b88180c02101"
+size = 98485
+mtime_ms = 1794232899509
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:849418b0-03f9-4793-a140-a83acc9ddfd9/cf55f094-3bc5-485d-b176-dfd1c5bc68e4/2e61321a-594f-4e3c-979e-f3443e4d1124"
+storage_version_token = "1794232996183582"
+content_type = "image/png"
+
+[[outputs]]
+id = "hbUIAC8FLjLbZwPrdA_1k"
+uri = "file://generated-artifacts/ledger-history-legacy-mobile.png"
+type = "image"
+title = "Updated history — mobile"
+description = "Temporary test record demonstrating the updated customer-facing label for an older opening entry, without rewriting its stored description or audit actor."
+logical_id = "db624e92-0e64-4e10-95a3-20849b2fd9a1"
+content_hash = "sha256:69d9e1b222050978b1571b9482d7488a435609bd36c002aa5afe312a2b2f105a"
+size = 48002
+mtime_ms = 1794232907149
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:849418b0-03f9-4793-a140-a83acc9ddfd9/db624e92-0e64-4e10-95a3-20849b2fd9a1/f2984d75-1a83-4413-8d01-e7b5f7affa3e"
+storage_version_token = "1794232996676615"
+content_type = "image/png"

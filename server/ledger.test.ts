@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { formatCents, isFutureLedgerDate, ledgerDateKey, parseMoneyToCents } from "./ledger";
 import { pool } from "./db";
 import { formatLedgerAmount, summarizeLedger } from "../client/src/lib/ledger-summary";
+import { INSTITUTION, LEGACY_OPENING_DESCRIPTION, OPENING_BALANCE_DESCRIPTION, presentHistoryEntry } from "../shared/institution";
+import { allocateCustomerAccount, generateCustomerAccountNumber } from "./customer-account";
 
 after(() => pool.end());
 
@@ -36,4 +38,49 @@ test("dashboard summaries contain only recorded posted amounts", () => {
     { type: "debit", amount: "100.00", status: "failed" },
   ]), { postedCredits: "1000.15", postedDebits: "25.01", pendingCount: 1, recordedCount: 5 });
   assert.equal(formatLedgerAmount("999999999999999.99"), "$999,999,999,999,999.99");
+});
+
+test("legacy labels are display-only and limited to recognized internal opening credits", () => {
+  const entry = { description: LEGACY_OPENING_DESCRIPTION, reference: "OPEN-test", source: "internal", type: "credit" };
+  assert.equal(presentHistoryEntry(entry).description, OPENING_BALANCE_DESCRIPTION);
+  assert.equal(presentHistoryEntry(entry).institutionAccountReference, INSTITUTION.accountReference);
+  assert.equal(entry.description, LEGACY_OPENING_DESCRIPTION);
+  for (const changed of [{ reference: "TRANSFER-1" }, { type: "debit" }, { source: "external" }, { description: "Customer-written description" }]) {
+    const unrelated = { ...entry, ...changed };
+    assert.equal(presentHistoryEntry(unrelated).description, unrelated.description);
+    assert.equal(presentHistoryEntry(unrelated).institutionAccountReference, null);
+  }
+  assert.equal(presentHistoryEntry({ ...entry, description: "Custom funding", reference: "CREDIT-test", institutionAccountReference: INSTITUTION.accountReference }).institutionAccountReference, INSTITUTION.accountReference);
+});
+
+test("account allocation skips reserved numbers and safely retries a database collision", async () => {
+  const attempted: string[] = [];
+  const tx: any = {
+    select: () => ({ from: () => ({ where: () => ({ limit: async () => [] }) }) }),
+    insert: () => ({ values: (data: any) => {
+      attempted.push(data.accountNumber);
+      return { onConflictDoNothing: ({ target }: any) => {
+        assert.ok(target);
+        return { returning: async () => attempted.length === 1 ? [] : [{ id: 1, ...data }] };
+      } };
+    } }),
+  };
+  const candidates = [INSTITUTION.accountReference, "123456789012", "123456789013"];
+  const account = await allocateCustomerAccount(tx, {} as any, () => candidates.shift()!);
+  assert.equal(account.accountNumber, "123456789013");
+  assert.deepEqual(attempted, ["123456789012", "123456789013"]);
+  await assert.rejects(allocateCustomerAccount(tx, {} as any, () => INSTITUTION.accountReference), /unique account number/);
+  tx.select = () => ({ from: () => ({ where: () => ({ limit: async () => [{ id: 99 }] }) }) });
+  await assert.rejects(allocateCustomerAccount(tx, {} as any), /existing customer/);
+});
+
+test("new account candidates are numeric and username errors are not retried", async () => {
+  for (let i = 0; i < 100; i++) assert.match(generateCustomerAccountNumber(), /^\d{12}$/);
+  let attempts = 0;
+  const tx: any = {
+    select: () => ({ from: () => ({ where: () => ({ limit: async () => [] }) }) }),
+    insert: () => { attempts++; throw new Error("Duplicate username"); },
+  };
+  await assert.rejects(allocateCustomerAccount(tx, {} as any, () => "123456789012"), /Duplicate username/);
+  assert.equal(attempts, 1);
 });

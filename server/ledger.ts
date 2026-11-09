@@ -14,6 +14,7 @@ export interface LedgerEntryInput {
   beneficiary?: string | null;
   beneficiaryBank?: string | null;
   beneficiaryAccount?: string | null;
+  institutionAccountReference?: string | null;
 }
 
 export function parseMoneyToCents(value: unknown): bigint | null {
@@ -118,6 +119,7 @@ export async function createLedgerEntryInTransaction(tx: any, input: LedgerEntry
     beneficiaryAccount: input.beneficiaryAccount || null,
     source: "internal",
     balanceAfter,
+    institutionAccountReference: input.institutionAccountReference || null,
   }).returning();
 
   await writeAuditLog(tx, {
@@ -132,6 +134,7 @@ export async function createLedgerEntryInTransaction(tx: any, input: LedgerEntry
       status,
       source: "internal",
       balanceAfter,
+      institutionAccountReference: input.institutionAccountReference || null,
     },
   });
 
