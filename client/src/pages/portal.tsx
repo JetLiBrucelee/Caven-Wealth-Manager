@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import CustomerDashboard from "@/components/customer-dashboard";
 
 interface CustomerData {
@@ -25,12 +25,15 @@ interface CustomerData {
   status: string;
   hasDebitCard: boolean;
   hasCreditCard: boolean;
+  avatar: string | null;
+  memberSince: string | null;
   createdAt: string;
 }
 
 function PhoneMockup() {
   return (
     <div className="relative" style={{ width: 280 }}>
+      <p className="text-center text-white/70 text-xs mb-3">Illustrative interface, not account records</p>
       <div className="relative rounded-[36px] border-[6px] border-gray-800 bg-gray-900 shadow-2xl overflow-hidden" style={{ width: 280, height: 560 }}>
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[120px] h-[28px] bg-gray-800 rounded-b-2xl z-10" />
         <div className="h-full bg-gradient-to-b from-[#1a1f3a] to-[#0d1025] p-4 pt-10 overflow-hidden">
@@ -116,7 +119,29 @@ export default function Portal() {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [customer, setCustomer] = useState<CustomerData | null>(null);
+  const [sessionChecking, setSessionChecking] = useState(true);
   const { toast } = useToast();
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const response = await fetch("/api/customer/me", { credentials: "include" });
+        if (response.status === 401 || response.status === 403) return;
+        if (!response.ok) throw new Error("Session check failed");
+        const restoredCustomer = await response.json();
+        if (mounted) {
+          setCustomer(restoredCustomer);
+          setStep("dashboard");
+        }
+      } catch {
+        if (mounted) toast({ description: "Could not restore your session. Please sign in again.", variant: "destructive" });
+      } finally {
+        if (mounted) setSessionChecking(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [toast]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -156,7 +181,10 @@ export default function Portal() {
       const response = await apiRequest("POST", "/api/customer/verify-code", { code });
       const data = await response.json();
       if (data.authenticated && data.customer) {
+        queryClient.clear();
         setCustomer(data.customer);
+        setPassword("");
+        setCode("");
         setStep("dashboard");
       }
     } catch (error: any) {
@@ -176,12 +204,15 @@ export default function Portal() {
     try {
       await apiRequest("POST", "/api/customer/logout");
     } catch (e) {}
+    queryClient.clear();
     setStep("login");
     setUsername("");
     setPassword("");
     setCode("");
     setCustomer(null);
   };
+
+  if (sessionChecking) return <div className="min-h-screen grid place-items-center bg-slate-950 text-white">Checking session…</div>;
 
   if (step === "dashboard" && customer) {
     return <CustomerDashboard customer={customer} onLogout={handleLogout} />;
@@ -400,7 +431,7 @@ export default function Portal() {
               </div>
             </div>
             <span className="text-white/40 text-[10px]">
-              &copy; {new Date().getFullYear()} Caven Wealth Financial
+              &copy; {new Date().getFullYear()} Caven Wealth & Finance
             </span>
           </div>
         </div>

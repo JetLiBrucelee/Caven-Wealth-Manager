@@ -17,7 +17,7 @@ export const admins = pgTable("admins", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  balance: text("balance").notNull().default("500000000000.00"),
+  balance: text("balance").notNull().default("0.00"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

@@ -1,6 +1,7 @@
-import { type ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,15 +26,23 @@ const menuItems = [
   { label: "Account Applications", icon: Plus, href: "/admin/account-applications" },
   { label: "Access Codes", icon: Lock, href: "/admin/access-codes" },
   { label: "Live Chat", icon: MessageSquare, href: "/admin/chat" },
+  { label: "Audit Log", icon: Shield, href: "/admin/audit-logs" },
 ];
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
+  const { data: admin, isLoading, error } = useQuery({
+    queryKey: ["/api/admin/me"], retry: false, staleTime: 0, refetchOnMount: "always",
+  });
+  useEffect(() => {
+    if (error) setLocation("/admin/login");
+  }, [error, setLocation]);
 
   async function handleLogout() {
     try {
       await apiRequest("POST", "/api/admin/logout");
+      queryClient.clear();
       toast({ title: "Logged out successfully" });
       setLocation("/admin/login");
     } catch (error: any) {
@@ -45,12 +54,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     }
   }
 
+  if (isLoading || error || !admin) return <div className="p-6">Checking admin access…</div>;
+
   return (
     <div className="flex h-screen bg-muted/30">
       <aside className="w-64 bg-white dark:bg-slate-900 border-r flex flex-col shrink-0">
         <div className="p-6 border-b">
           <div className="flex items-center justify-center" data-testid="text-sidebar-brand">
-            <img src="/logo.png" alt="Caven Wealth Financial" className="h-28 w-auto object-contain drop-shadow-md" />
+            <img src="/logo-finance.svg" alt="Caven Wealth & Finance" className="h-auto max-h-28 max-w-full object-contain drop-shadow-md" />
           </div>
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
@@ -80,6 +91,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Shield className="w-4 h-4" />
             <span data-testid="text-admin-label">Admin Panel</span>
+            <span className="rounded bg-blue-50 px-2 py-1 text-xs text-blue-800">Internal ledger</span>
           </div>
           <Button
             variant="ghost"

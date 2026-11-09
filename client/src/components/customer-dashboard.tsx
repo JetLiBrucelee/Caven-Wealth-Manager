@@ -1,3 +1,4 @@
+import { formatLedgerAmount as formatAmount, summarizeLedger } from "@/lib/ledger-summary";
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -112,6 +113,8 @@ interface Transaction {
   beneficiary: string | null;
   beneficiaryBank: string | null;
   beneficiaryAccount: string | null;
+  source: string;
+  balanceAfter: string | null;
 }
 
 type Page = "dashboard" | "wire" | "external" | "internal" | "billpay" | "profile" | "history" | "transfers" | "cards" | "support" | "settings";
@@ -129,13 +132,10 @@ const menuItems: { label: string; icon: any; page: Page }[] = [
   { label: "Support", icon: MessageSquare, page: "support" },
 ];
 
-const formatAmount = (amount: string) => {
-  const num = parseFloat(amount);
-  return `$${num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-};
 
 export default function CustomerDashboard({ customer: initialCustomer, onLogout }: { customer: CustomerData; onLogout: () => void }) {
   const [currentPage, setCurrentPage] = useState<Page>("dashboard");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { toast } = useToast();
 
   const { data: freshCustomer } = useQuery<CustomerData>({
@@ -147,10 +147,12 @@ export default function CustomerDashboard({ customer: initialCustomer, onLogout 
 
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-950">
-      <aside className="w-64 bg-white dark:bg-slate-900 border-r flex flex-col shrink-0">
-        <div className="p-6 border-b">
+      {mobileNavOpen && <button className="fixed inset-0 z-40 bg-black/40 md:hidden" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)} />}
+      <aside className={`${mobileNavOpen ? "flex" : "hidden"} md:flex fixed md:static inset-y-0 left-0 z-50 md:z-auto w-64 bg-white dark:bg-slate-900 border-r flex-col shrink-0`}>
+        <div className="p-6 border-b relative">
+          <button className="absolute right-2 top-1 p-2 md:hidden" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)}>×</button>
           <div className="flex items-center justify-center" data-testid="text-dashboard-brand">
-            <img src="/logo.png" alt="Caven Wealth Financial" className="h-28 w-auto object-contain drop-shadow-md" />
+            <img src="/logo-finance.svg" alt="Caven Wealth & Finance" className="h-auto max-h-28 max-w-full object-contain drop-shadow-md" />
           </div>
           <p className="text-xs text-muted-foreground mt-3 text-center">Welcome, {customer.firstName}</p>
         </div>
@@ -160,7 +162,7 @@ export default function CustomerDashboard({ customer: initialCustomer, onLogout 
             return (
               <div
                 key={item.page}
-                onClick={() => setCurrentPage(item.page)}
+                onClick={() => { setCurrentPage(item.page); setMobileNavOpen(false); }}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium cursor-pointer transition-colors ${
                   isActive
                     ? "bg-blue-600 text-white"
@@ -184,6 +186,7 @@ export default function CustomerDashboard({ customer: initialCustomer, onLogout 
 
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-14 bg-white dark:bg-slate-900 border-b flex items-center justify-end gap-4 px-6 shrink-0">
+          <Button variant="outline" size="sm" className="mr-auto md:hidden" onClick={() => setMobileNavOpen(true)} data-testid="button-customer-mobile-menu" aria-expanded={mobileNavOpen}>Menu</Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-2 hover:opacity-80 transition-opacity outline-none" data-testid="button-avatar-menu">
@@ -246,7 +249,10 @@ export default function CustomerDashboard({ customer: initialCustomer, onLogout 
             </DropdownMenuContent>
           </DropdownMenu>
         </header>
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto p-4 md:p-6">
+          <div className="mb-4 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-950">
+            Internal ledger: balances and activity are internal application records. No external settlement provider is connected. Pending entries do not change the balance until posted.
+          </div>
           {currentPage === "dashboard" && <DashboardView customer={customer} onNavigate={setCurrentPage} />}
           {currentPage === "wire" && <TransferForm type="wire_transfer" customer={customer} />}
           {currentPage === "external" && <TransferForm type="external_transfer" customer={customer} />}
@@ -266,85 +272,8 @@ export default function CustomerDashboard({ customer: initialCustomer, onLogout 
   );
 }
 
-function useSimulatedStocks() {
-  const basePrices = [
-    { symbol: "VOO", base: 498.23, label: "S&P 500" },
-    { symbol: "BRK.B", base: 412.56, label: "Berkshire" },
-    { symbol: "JPM", base: 201.16, label: "JPMorgan" },
-    { symbol: "AAPL", base: 237.84, label: "Apple" },
-    { symbol: "MSFT", base: 415.67, label: "Microsoft" },
-  ];
-
-  const baseMarket = [
-    { name: "DJI", base: 0.6 },
-    { name: "NASDAQ", base: 1.1 },
-    { name: "Gold", base: -0.2 },
-    { name: "S&P 500", base: 0.9 },
-  ];
-
-  const [stocks, setStocks] = useState(() =>
-    basePrices.map((s) => {
-      const pctChange = (Math.random() - 0.4) * 1.5;
-      const price = s.base + s.base * (pctChange / 100);
-      return {
-        symbol: s.symbol,
-        price: price.toFixed(2),
-        change: `${pctChange >= 0 ? "+" : ""}${pctChange.toFixed(1)}%`,
-        label: s.label,
-        positive: pctChange >= 0,
-      };
-    })
-  );
-
-  const [market, setMarket] = useState(() =>
-    baseMarket.map((m) => {
-      const val = m.base + (Math.random() - 0.5) * 0.4;
-      return {
-        name: m.name,
-        change: `${val >= 0 ? "+" : ""}${val.toFixed(1)}%`,
-        positive: val >= 0,
-      };
-    })
-  );
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setStocks((prev) =>
-        prev.map((s, i) => {
-          const drift = (Math.random() - 0.48) * 0.3;
-          const oldPct = parseFloat(s.change);
-          const newPct = oldPct + drift;
-          const price = basePrices[i].base + basePrices[i].base * (newPct / 100);
-          return {
-            ...s,
-            price: price.toFixed(2),
-            change: `${newPct >= 0 ? "+" : ""}${newPct.toFixed(1)}%`,
-            positive: newPct >= 0,
-          };
-        })
-      );
-      setMarket((prev) =>
-        prev.map((m) => {
-          const drift = (Math.random() - 0.5) * 0.15;
-          const oldVal = parseFloat(m.change);
-          const newVal = oldVal + drift;
-          return {
-            ...m,
-            change: `${newVal >= 0 ? "+" : ""}${newVal.toFixed(1)}%`,
-            positive: newVal >= 0,
-          };
-        })
-      );
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  return { stocks, market };
-}
-
 function DashboardView({ customer, onNavigate }: { customer: CustomerData; onNavigate: (p: Page) => void }) {
   const [showAccount, setShowAccount] = useState(false);
-  const { stocks: stockData, market: marketSummary } = useSimulatedStocks();
 
   const { data: transfers } = useQuery<Transfer[]>({
     queryKey: ["/api/customer/transfers"],
@@ -356,64 +285,16 @@ function DashboardView({ customer, onNavigate }: { customer: CustomerData; onNav
     refetchInterval: 10000,
   });
 
-  const balance = parseFloat(customer.balance);
-  const liquidAssets = balance * 0.43;
-  const ytdReturn = ((balance * 0.032) / balance) * 100;
-
-  const advisorNotes = [
-    "Your portfolio allocation remains balanced. Consider tax-loss harvesting in tech.",
-    "Equity markets show continued momentum. Maintain current diversification strategy.",
-    "Bond yields stabilizing — review fixed income allocation for rebalancing opportunity.",
-  ];
-
-  const todayNote = advisorNotes[new Date().getDate() % advisorNotes.length];
-
-  const portfolioAllocation = [
-    { label: "Equities", pct: 45, color: "bg-blue-500" },
-    { label: "Fixed Income", pct: 25, color: "bg-emerald-500" },
-    { label: "Real Estate", pct: 15, color: "bg-amber-500" },
-    { label: "Cash & Equiv.", pct: 10, color: "bg-slate-400" },
-    { label: "Alternatives", pct: 5, color: "bg-purple-500" },
-  ];
+  const summary = transactions ? summarizeLedger(transactions) : null;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap gap-2 items-center justify-between">
         <h2 className="text-xl font-bold" data-testid="text-dashboard-title">Dashboard overview</h2>
         <div className="text-sm text-muted-foreground">
           {format(new Date(), "EEEE, MMMM d, yyyy")}
         </div>
       </div>
-
-      <Card>
-        <CardContent className="p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Current U.S. Stocks</h3>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-xs text-green-600 dark:text-green-400 font-medium">market open</span>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            {stockData.map((stock) => (
-              <div
-                key={stock.symbol}
-                className="border rounded-xl p-4 bg-white dark:bg-slate-800 hover:shadow-md transition-shadow"
-                data-testid={`card-stock-${stock.symbol}`}
-              >
-                <p className="font-bold text-base text-slate-800 dark:text-white">{stock.symbol}</p>
-                <p className="text-xl font-bold mt-1">${stock.price}</p>
-                <div className="flex items-center gap-1 mt-1">
-                  <span className={`text-xs font-semibold ${stock.positive ? "text-green-600" : "text-red-500"}`}>
-                    {stock.change}
-                  </span>
-                  <span className="text-xs text-muted-foreground">{stock.label}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="shadow-sm">
@@ -423,15 +304,11 @@ function DashboardView({ customer, onNavigate }: { customer: CustomerData; onNav
               <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400">Total balance</h3>
             </div>
             <p className="text-4xl font-bold mt-2" data-testid="text-dashboard-balance">{formatAmount(customer.balance)}</p>
-            <p className="text-green-600 text-sm font-medium mt-1 flex items-center gap-1" data-testid="text-ytd-return">
-              <ArrowUp className="w-3.5 h-3.5" /> {ytdReturn.toFixed(1)}% YTD
-            </p>
+            <p className="text-sm text-muted-foreground mt-2">Internal recorded balance — not external settlement</p>
             <Separator className="my-4" />
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Liquid assets</span>
-              <span className="font-bold" data-testid="text-liquid-assets">
-                ${liquidAssets >= 1000000 ? (liquidAssets / 1000000).toFixed(1) + "M" : liquidAssets.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-              </span>
+              <span className="text-muted-foreground">Ledger source</span>
+              <span className="font-medium">Internal database</span>
             </div>
             <div className="flex items-center justify-between text-sm mt-2">
               <span className="text-muted-foreground">Account</span>
@@ -456,76 +333,17 @@ function DashboardView({ customer, onNavigate }: { customer: CustomerData; onNav
 
         <Card className="shadow-sm">
           <CardContent className="p-6">
-            <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-4">Market summary</h3>
-            <div className="space-y-3">
-              {marketSummary.map((item) => (
-                <div key={item.name} className="flex items-center justify-between py-2 border-b last:border-0" data-testid={`market-${item.name.toLowerCase().replace(/[^a-z]/g, "")}`}>
-                  <span className="text-sm font-medium">{item.name}</span>
-                  <span className={`text-sm font-bold flex items-center gap-1 ${item.positive ? "text-green-600" : "text-red-500"}`}>
-                    {item.positive ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
-                    {item.change.replace("+", "").replace("-", "")}
-                  </span>
-                </div>
-              ))}
+            <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-4">Recorded ledger activity</h3>
+            <div className="grid grid-cols-2 gap-5">
+              <div><p className="text-xs text-muted-foreground">Posted internal credits</p><p className="text-lg font-bold" data-testid="text-ledger-posted-credits">{summary ? formatAmount(summary.postedCredits) : "Loading..."}</p></div>
+              <div><p className="text-xs text-muted-foreground">Posted internal debits</p><p className="text-lg font-bold" data-testid="text-ledger-posted-debits">{summary ? formatAmount(summary.postedDebits) : "Loading..."}</p></div>
+              <div><p className="text-xs text-muted-foreground">Pending ledger entries</p><p className="text-lg font-bold" data-testid="text-ledger-pending-count">{summary ? summary.pendingCount : "Loading..."}</p></div>
+              <div><p className="text-xs text-muted-foreground">Recorded ledger entries</p><p className="text-lg font-bold" data-testid="text-ledger-record-count">{summary ? summary.recordedCount : "Loading..."}</p></div>
             </div>
+            <p className="text-xs text-muted-foreground mt-5">Based only on this account's database records. Pending and failed entries do not affect the posted totals. No investment or market-data provider is connected.</p>
           </CardContent>
         </Card>
       </div>
-
-      <Card className="shadow-sm bg-blue-50/50 dark:bg-blue-950/30">
-        <CardContent className="p-5">
-          <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">Today's advisor note</h3>
-          <p className="text-sm text-slate-700 dark:text-slate-300 italic" data-testid="text-advisor-note">
-            "{todayNote}"
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card className="shadow-sm">
-        <CardContent className="p-6">
-          <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-4">Investment Analytics — Portfolio Allocation</h3>
-          <div className="flex h-4 rounded-full overflow-hidden mb-4">
-            {portfolioAllocation.map((item) => (
-              <div
-                key={item.label}
-                className={`${item.color} transition-all`}
-                style={{ width: `${item.pct}%` }}
-                title={`${item.label}: ${item.pct}%`}
-              />
-            ))}
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            {portfolioAllocation.map((item) => (
-              <div key={item.label} className="flex items-center gap-2" data-testid={`allocation-${item.label.toLowerCase().replace(/[^a-z]/g, "")}`}>
-                <span className={`w-3 h-3 rounded-full ${item.color} shrink-0`} />
-                <div>
-                  <p className="text-xs text-muted-foreground">{item.label}</p>
-                  <p className="text-sm font-bold">{item.pct}%</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <Separator className="my-4" />
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground">Total Return</p>
-              <p className="text-lg font-bold text-green-600" data-testid="text-total-return">+{ytdReturn.toFixed(1)}%</p>
-            </div>
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground">Risk Score</p>
-              <p className="text-lg font-bold" data-testid="text-risk-score">Moderate</p>
-            </div>
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground">Dividend Yield</p>
-              <p className="text-lg font-bold text-blue-600" data-testid="text-dividend-yield">2.4%</p>
-            </div>
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground">Asset Classes</p>
-              <p className="text-lg font-bold" data-testid="text-asset-classes">{portfolioAllocation.length}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
@@ -540,7 +358,7 @@ function DashboardView({ customer, onNavigate }: { customer: CustomerData; onNav
             onClick={() => onNavigate(action.page)}
             data-testid={`card-action-${action.page}`}
           >
-            <CardContent className="p-4 flex items-center gap-3">
+            <CardContent className="p-4 flex flex-col sm:flex-row items-center gap-3">
               <div className={`p-2.5 rounded-lg ${action.color}`}>
                 <action.icon className="w-5 h-5" />
               </div>
@@ -579,7 +397,7 @@ function DashboardView({ customer, onNavigate }: { customer: CustomerData; onNav
                     </div>
                     <div>
                       <p className="text-sm font-medium">{t.description.split(" | ")[0]}</p>
-                      <p className="text-xs text-muted-foreground">{format(new Date(t.date), "MMM d, yyyy")}</p>
+                      <p className="text-xs text-muted-foreground">{format(new Date(t.date), "MMM d, yyyy")} · Internal · {t.status}</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -1122,6 +940,7 @@ function TransactionHistoryView() {
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-bold" data-testid="text-history-title">Transaction History</h2>
+      <p className="text-sm text-muted-foreground">Internal ledger activity. Future-dated entries remain Pending until their scheduled date.</p>
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
@@ -1148,7 +967,7 @@ function TransactionHistoryView() {
                           <div className="min-w-0">
                             <p className="text-sm font-medium truncate">{title}</p>
                             <p className="text-xs text-muted-foreground mt-0.5">
-                              {format(new Date(t.date), "MMM d, yyyy")} · {t.reference || "-"}
+                              {format(new Date(t.date), "MMM d, yyyy")} · Internal · {t.reference || "-"}
                             </p>
                           </div>
                         </div>
@@ -1247,7 +1066,7 @@ function CardsView({ customer }: { customer: CustomerData }) {
             <div className="relative h-full flex flex-col justify-between p-6">
               <div className="flex items-center justify-between">
                 <div className="text-white font-bold text-lg tracking-wide" data-testid="text-card-bank-name">
-                  CAVEN WEALTH
+                  CAVEN WEALTH & FINANCE
                 </div>
                 <div className="text-white/60 text-xs font-medium uppercase tracking-widest">Debit</div>
               </div>
@@ -1339,7 +1158,7 @@ function CardsView({ customer }: { customer: CustomerData }) {
               </div>
             </div>
             <div className="absolute top-6 left-6 text-white/30 font-bold text-lg tracking-wide">
-              CAVEN WEALTH
+              CAVEN WEALTH & FINANCE
             </div>
             <div className="absolute bottom-6 right-6 flex gap-1">
               <div className="w-8 h-8 rounded-full bg-white/10" />

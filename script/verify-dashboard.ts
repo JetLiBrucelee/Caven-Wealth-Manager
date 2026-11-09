@@ -1,0 +1,51 @@
+import assert from "node:assert/strict";
+import { mkdir } from "node:fs/promises";
+import { chromium } from "playwright-core";
+
+export async function verifyDashboard(input: {
+  base: string; username: string; password: string; code: string;
+  balance: string; credits: string; label: string; mobile?: boolean;
+}) {
+  const browser = await chromium.launch({
+    executablePath: process.env.CHROMIUM_PATH || "/repl/tools/bin/chromium",
+    headless: true, args: ["--no-sandbox", "--disable-dev-shm-usage"],
+  });
+  const context = await browser.newContext({
+    baseURL: input.base,
+    viewport: input.mobile ? { width: 390, height: 844 } : { width: 1440, height: 1000 },
+  });
+  try {
+    const page = await context.newPage();
+    const errors: string[] = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.goto("/portal");
+    await page.getByTestId("input-username").fill(input.username);
+    await page.getByTestId("input-password").fill(input.password);
+    await page.getByTestId("button-login-submit").click();
+    await page.getByTestId("input-access-code").fill(input.code);
+    await page.getByTestId("button-verify-code").click();
+    await page.waitForFunction((expected) => document.querySelector('[data-testid="text-dashboard-balance"]')?.textContent === expected, input.balance);
+    await page.waitForFunction((expected) => document.querySelector('[data-testid="text-ledger-posted-credits"]')?.textContent === expected, input.credits);
+    assert.equal(await page.getByTestId("text-ledger-posted-debits").textContent(), "$0.00");
+    assert.equal(await page.getByTestId("text-ledger-pending-count").textContent(), "0");
+    assert.doesNotMatch(await page.locator("body").innerText(), /YTD|Dividend Yield|Risk Score|Portfolio Allocation|Today's advisor note|market open|Current U.S. Stocks/);
+    await page.reload();
+    await page.waitForFunction((expected) => document.querySelector('[data-testid="text-dashboard-balance"]')?.textContent === expected, input.balance);
+    if (input.mobile) {
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "The mobile dashboard must not overflow horizontally");
+      await page.getByTestId("button-customer-mobile-menu").click();
+      await page.getByTestId("link-customer-history").click();
+      await page.getByTestId("button-customer-mobile-menu").click();
+      await page.getByTestId("link-customer-dashboard").click();
+      await page.getByTestId("text-dashboard-balance").waitFor({ state: "visible" });
+      assert.ok((await page.getByTestId("text-dashboard-balance").boundingBox())!.width > 250, "The account view must have usable mobile width");
+    }
+    assert.deepEqual(errors, []);
+    await mkdir("generated-artifacts", { recursive: true });
+    await page.screenshot({ path: `generated-artifacts/ledger-dashboard-${input.label}.png`, fullPage: true });
+  } finally {
+    await context.request.post("/api/customer/logout").catch(() => {});
+    await context.close();
+    await browser.close();
+  }
+}

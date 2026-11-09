@@ -30,7 +30,7 @@ const services = [
   {
     id: "wealth",
     icon: LineChart,
-    title: "Caven Wealth Financial",
+    title: "Caven Wealth & Finance",
     subtitle: "Wealth Management Solutions",
     description:
       "Our wealth management division provides comprehensive financial planning and investment strategies designed to help individuals and businesses achieve their long-term financial goals.",

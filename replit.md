@@ -2,7 +2,20 @@
 
 ## Overview
 
-This is **Caven Wealth Financial**, a full-stack banking/financial services web application. It provides a public-facing marketing website, a customer banking portal with account management, and an admin dashboard for managing customers, transactions, transfers, access codes, and live chat. The application simulates a premium banking institution with features like account management, fund transfers, transaction history, and customer-admin chat.
+This is **Caven Wealth & Finance**, an internal-ledger financial application. It provides a public website, customer portal, and admin dashboard. The user requires the backend database to be the authoritative ledger for account creation, deposits, withdrawals, transfers, histories, and balance changes. There is no external settlement provider connected: activity must be clearly labeled Internal or Pending, never represented as provider-verified funds.
+
+## Running and verifying
+
+- Install the declared npm dependencies, apply the development schema with `npm run db:push`, and run the existing `Start application` workflow (`npm run dev`, port 5000).
+- Required secrets: `SESSION_SECRET`, `ADMIN_USERNAME`, and `ADMIN_PASSWORD`. The database supplies `DATABASE_URL`. Never add credential values to source files or logs.
+- Admin credentials bootstrap the matching admin account only when it does not already exist. They do not silently overwrite an existing database password.
+- New accounts have no generated sample transactions or transfers. An optional opening amount is an audited Internal credit, and a customer-specific login code is assigned for 10 minutes.
+- Customer summaries must use recorded ledger entries only. Do not add preset investment positions, returns, yields, risk scores, advisor messages, or simulated live-market information.
+- Ledger amounts use exact cents. Posted entries are immutable; corrections use referenced offsetting entries. Accounts with ledger or transfer history cannot be deleted.
+- Future calendar dates remain Pending until their day arrives in `America/New_York`. Settlement runs every minute and on ledger/account reads, catches up after downtime, and posts each entry once. Insufficient-funds scheduled debits fail without reducing the balance.
+- `npm run check`, `npm run test:ledger`, and `npm run build` check code, money/date rules, and production bundling.
+- `npm run verify:ledger` exercises the running development preview with temporary test accounts and removes their records afterward. It uses admin secrets without displaying them and checks authenticated zero/opening-balance dashboards in Chromium (`CHROMIUM_PATH` can override the executable). Test screenshots go to ignored `generated-artifacts/`.
+- Production schema changes for Replit-managed PostgreSQL are applied by Publish, not by startup code or deployment build hooks.
 
 ## User Preferences
 
@@ -70,7 +83,8 @@ Preferred communication style: Simple, everyday language.
 
 ### Environment Variables
 - `DATABASE_URL` — PostgreSQL connection string (required)
-- `SESSION_SECRET` — Session encryption key (falls back to hardcoded default)
+- `SESSION_SECRET` — Required session encryption key
+- `ADMIN_USERNAME` / `ADMIN_PASSWORD` — Secure first-time admin account initialization
 - `ISSUER_URL` — Replit OIDC issuer (optional, for Replit Auth)
 - `REPL_ID` — Replit environment identifier (auto-set by Replit)
 

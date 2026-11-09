@@ -79,7 +79,7 @@ export default function Company() {
                 </h2>
               </div>
               <p className="text-muted-foreground text-lg">
-                Founded in 1977, Caven Wealth Financial began with a simple mission: to make 
+                Founded in 1977, Caven Wealth & Finance began with a simple mission: to make 
                 banking accessible, efficient, and fair. Over the decades, we have 
                 grown from a regional bank into one of the largest and most trusted names in 
                 banking in the United States and Puerto Rico.

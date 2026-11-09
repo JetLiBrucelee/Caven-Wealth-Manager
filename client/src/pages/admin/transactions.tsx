@@ -27,12 +27,16 @@ interface TransactionFormData {
   beneficiaryAccount: string;
 }
 
+function localDateTime(date = new Date()) {
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}
+
 const emptyForm: TransactionFormData = {
   customerId: "",
   type: "credit",
   amount: "",
   description: "",
-  date: new Date().toISOString().slice(0, 16),
+  date: localDateTime(),
   status: "completed",
   reference: "",
   beneficiary: "",
@@ -113,10 +117,12 @@ export default function AdminTransactions() {
     mutationFn: (data: TransactionFormData) =>
       apiRequest("POST", "/api/transactions", {
         ...data,
+        date: new Date(data.date).toISOString(),
         customerId: parseInt(data.customerId),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
       toast({ title: "Transaction created successfully" });
       setDialogOpen(false);
       resetForm();
@@ -157,7 +163,7 @@ export default function AdminTransactions() {
   });
 
   function resetForm() {
-    setFormData(emptyForm);
+    setFormData({ ...emptyForm, date: localDateTime() });
     setEditingTransaction(null);
   }
 
@@ -173,7 +179,7 @@ export default function AdminTransactions() {
       type: tx.type,
       amount: tx.amount,
       description: tx.description,
-      date: new Date(tx.date).toISOString().slice(0, 16),
+      date: localDateTime(new Date(tx.date)),
       status: tx.status,
       reference: tx.reference ?? "",
       beneficiary: tx.beneficiary ?? "",
@@ -204,7 +210,7 @@ export default function AdminTransactions() {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h2 className="text-2xl font-bold" data-testid="text-page-title">Transactions</h2>
-          <p className="text-muted-foreground text-sm mt-1">Manage all transactions</p>
+          <p className="text-muted-foreground text-sm mt-1">Internal ledger records. Posted entries are immutable; use a referenced offsetting entry for corrections. Future dates remain Pending until due.</p>
         </div>
         <Button onClick={openAddDialog} data-testid="button-add-transaction">
           <Plus className="w-4 h-4 mr-2" />
@@ -418,6 +424,7 @@ export default function AdminTransactions() {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="capitalize">{tx.type}</Badge>
+                      <Badge variant="secondary" className="ml-1">Internal</Badge>
                     </TableCell>
                     <TableCell className="font-medium">
                       ${parseFloat(tx.amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -444,6 +451,8 @@ export default function AdminTransactions() {
                             openEditDialog(tx);
                           }}
                           data-testid={`button-edit-transaction-${tx.id}`}
+                          disabled
+                          title="Ledger entries are immutable"
                         >
                           <Pencil className="w-4 h-4" />
                         </Button>
@@ -456,6 +465,8 @@ export default function AdminTransactions() {
                             setDeleteDialogOpen(true);
                           }}
                           data-testid={`button-delete-transaction-${tx.id}`}
+                          disabled
+                          title="Ledger entries cannot be deleted"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>

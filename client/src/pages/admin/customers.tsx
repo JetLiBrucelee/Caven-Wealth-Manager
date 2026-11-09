@@ -78,6 +78,8 @@ const emptyForm: CustomerFormData = {
   memberSince: "",
 };
 
+const currentLocalDateTime = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+
 export default function AdminCustomers() {
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -95,7 +97,7 @@ export default function AdminCustomers() {
     type: "credit",
     amount: "",
     description: "",
-    date: "",
+    date: currentLocalDateTime(),
     status: "completed",
     reference: "",
     beneficiary: "",
@@ -167,6 +169,7 @@ export default function AdminCustomers() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/balance"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/transactions"] });
       toast({ title: "Account funded successfully" });
       setFundDialogOpen(false);
       setFundingCustomer(null);
@@ -179,19 +182,23 @@ export default function AdminCustomers() {
   });
 
   const historyMutation = useMutation({
-    mutationFn: (data: { id: number; values: Record<string, string> }) =>
-      apiRequest("POST", `/api/customers/${data.id}/history`, data.values),
-    onSuccess: () => {
+    mutationFn: async (data: { id: number; values: Record<string, string> }) => {
+      const response = await apiRequest("POST", `/api/customers/${data.id}/history`, {
+        ...data.values, date: new Date(data.values.date).toISOString(),
+      });
+      return response.json();
+    },
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
       queryClient.invalidateQueries({ queryKey: ["/api/transactions"] });
-      toast({ title: "Transaction history created successfully" });
+      toast({ title: data.status === "pending" ? "Internal entry scheduled" : "Internal ledger entry recorded" });
       setHistoryDialogOpen(false);
       setHistoryCustomer(null);
       setHistoryForm({
         type: "credit",
         amount: "",
         description: "",
-        date: "",
+        date: currentLocalDateTime(),
         status: "completed",
         reference: "",
         beneficiary: "",
@@ -285,7 +292,9 @@ export default function AdminCustomers() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (editingCustomer) {
-      updateMutation.mutate({ id: editingCustomer.id, values: formData });
+      const values: Partial<CustomerFormData> = { ...formData };
+      if (values.balance === editingCustomer.balance) delete values.balance;
+      updateMutation.mutate({ id: editingCustomer.id, values });
     } else {
       createMutation.mutate(formData);
     }
@@ -413,7 +422,7 @@ export default function AdminCustomers() {
                               type: "credit",
                               amount: "",
                               description: "",
-                              date: "",
+                              date: currentLocalDateTime(),
                               status: "completed",
                               reference: "",
                               beneficiary: "",
@@ -685,7 +694,7 @@ export default function AdminCustomers() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="balance">Initial Balance</Label>
+                  <Label htmlFor="balance">{editingCustomer ? "Internal Balance Adjustment" : "Internal Opening Balance"}</Label>
                   <Input
                     id="balance"
                     type="number"
@@ -696,6 +705,7 @@ export default function AdminCustomers() {
                     required
                     data-testid="input-balance"
                   />
+                  <p className="text-xs text-muted-foreground">Any balance change is recorded as an audited internal ledger entry.</p>
                 </div>
               </div>
             </div>
@@ -826,7 +836,7 @@ export default function AdminCustomers() {
       <Dialog open={historyDialogOpen} onOpenChange={(open) => { setHistoryDialogOpen(open); if (!open) { setHistoryCustomer(null); } }}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle data-testid="text-history-dialog-title">Create Transaction History</DialogTitle>
+            <DialogTitle data-testid="text-history-dialog-title">Record Internal Ledger Entry</DialogTitle>
           </DialogHeader>
           {historyCustomer && (
             <p className="text-sm text-muted-foreground mb-4" data-testid="text-history-customer-name">
@@ -893,6 +903,7 @@ export default function AdminCustomers() {
                 required
                 data-testid="input-history-date"
               />
+              <p className="text-xs text-muted-foreground">Defaults to today. A future calendar date is saved as Pending and posts when that date arrives in America/New_York. No balance changes before then.</p>
             </div>
             <div className="space-y-2">
               <Label>Status</Label>

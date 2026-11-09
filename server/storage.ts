@@ -9,7 +9,8 @@ import {
   admins, customers, transactions, transfers, accessCodes, chatMessages, transferConfirmationCodes
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, gt, lt, and, or, inArray } from "drizzle-orm";
+import { eq, desc, gt, lt, and, or, inArray, isNull } from "drizzle-orm";
+import { randomInt } from "node:crypto";
 import bcrypt from "bcryptjs";
 
 export interface IStorage {
@@ -43,7 +44,7 @@ export interface IStorage {
 
   getAccessCodes(): Promise<AccessCode[]>;
   getActiveAccessCodes(): Promise<AccessCode[]>;
-  getAccessCode(code: string): Promise<AccessCode | undefined>;
+  getAccessCode(code: string, customerId?: number): Promise<AccessCode | undefined>;
   createAccessCode(accessCode: InsertAccessCode): Promise<AccessCode>;
   expireAccessCode(id: number): Promise<void>;
   cleanupExpiredCodes(): Promise<void>;
@@ -58,7 +59,7 @@ export interface IStorage {
   createTransferConfirmationCode(customerId: number, transferId?: number): Promise<TransferConfirmationCode>;
   getTransferConfirmationCodes(customerId: number): Promise<TransferConfirmationCode[]>;
   getAllTransferConfirmationCodes(): Promise<TransferConfirmationCode[]>;
-  verifyTransferConfirmationCode(code: string, customerId: number): Promise<TransferConfirmationCode | null>;
+  verifyTransferConfirmationCode(code: string, customerId: number, transferId: number): Promise<TransferConfirmationCode | null>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -216,10 +217,11 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(accessCodes.createdAt));
   }
 
-  async getAccessCode(code: string): Promise<AccessCode | undefined> {
+  async getAccessCode(code: string, customerId?: number): Promise<AccessCode | undefined> {
     const now = new Date();
     const [accessCode] = await db.select().from(accessCodes)
-      .where(and(eq(accessCodes.code, code), eq(accessCodes.status, "active"), gt(accessCodes.expiresAt, now)));
+      .where(and(eq(accessCodes.code, code), eq(accessCodes.status, "active"), gt(accessCodes.expiresAt, now),
+        customerId === undefined ? undefined : eq(accessCodes.customerId, customerId)));
     return accessCode;
   }
 
@@ -244,7 +246,7 @@ export class DatabaseStorage implements IStorage {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     for (let i = 0; i < count; i++) {
-      const code = String(Math.floor(100000 + Math.random() * 900000));
+      const code = String(randomInt(100000, 1000000));
       try {
         const created = await this.createAccessCode({
           code,
@@ -298,7 +300,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTransferConfirmationCode(customerId: number, transferId?: number): Promise<TransferConfirmationCode> {
-    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const code = String(randomInt(100000, 1000000));
     const [created] = await db.insert(transferConfirmationCodes).values({
       code,
       customerId,
@@ -319,18 +321,14 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(transferConfirmationCodes.createdAt));
   }
 
-  async verifyTransferConfirmationCode(code: string, customerId: number): Promise<TransferConfirmationCode | null> {
-    const [found] = await db.select().from(transferConfirmationCodes)
+  async verifyTransferConfirmationCode(code: string, customerId: number, transferId: number): Promise<TransferConfirmationCode | null> {
+    const [found] = await db.update(transferConfirmationCodes).set({ status: "used" })
       .where(and(
         eq(transferConfirmationCodes.code, code),
         eq(transferConfirmationCodes.customerId, customerId),
-        eq(transferConfirmationCodes.status, "active")
-      ));
-    if (found) {
-      await db.update(transferConfirmationCodes)
-        .set({ status: "used" })
-        .where(eq(transferConfirmationCodes.id, found.id));
-    }
+        eq(transferConfirmationCodes.status, "active"),
+        or(eq(transferConfirmationCodes.transferId, transferId), isNull(transferConfirmationCodes.transferId))
+      )).returning();
     return found || null;
   }
 }

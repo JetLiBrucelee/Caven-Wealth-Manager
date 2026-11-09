@@ -36,7 +36,7 @@ const operations = [
   },
   {
     num: "02",
-    title: "Caven Wealth Financial",
+    title: "Caven Wealth & Finance",
     desc: "Expert wealth management services designed to help you grow and protect your financial portfolio.",
   },
   {
@@ -156,7 +156,7 @@ export default function Home() {
                 Built to Help You Succeed
               </h2>
               <p className="mt-4 text-muted-foreground text-lg">
-                Caven Wealth Financial helps you generate revenue, automate processes,
+                Caven Wealth & Finance helps you generate revenue, automate processes,
                 and provide great service.
               </p>
               <ul className="mt-8 space-y-4">
@@ -243,7 +243,7 @@ export default function Home() {
             Our Banking
           </h2>
           <p className="mt-4 text-muted-foreground max-w-3xl mx-auto text-lg">
-            Caven Wealth Financial is a trusted banking institution committed to innovation,
+            Caven Wealth & Finance is a trusted banking institution committed to innovation,
             integrity, and the highest standards of service. We partner with clients of
             all sizes to deliver secure and scalable banking solutions.
           </p>
@@ -282,7 +282,7 @@ export default function Home() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-6">
             <p className="text-muted-foreground" data-testid="text-bottom-statement">
-              Over the past 47 years, Caven Wealth Financial has grown into one of the
+              Over the past 47 years, Caven Wealth & Finance has grown into one of the
               most trusted banking institutions in the United States and Puerto Rico.
             </p>
           </div>

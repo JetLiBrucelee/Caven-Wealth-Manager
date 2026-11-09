@@ -30,19 +30,10 @@ import {
 } from "lucide-react";
 import type { Customer, Transaction, AccessCode } from "@shared/schema";
 
-const marketData = [
-  { pair: "USD/EUR", price: "1.0847", change: "+0.12%", positive: true },
-  { pair: "USD/GBP", price: "0.7891", change: "-0.05%", positive: false },
-  { pair: "USD/JPY", price: "149.52", change: "+0.23%", positive: true },
-  { pair: "BTC/USD", price: "$67,432.18", change: "+2.15%", positive: true },
-  { pair: "ETH/USD", price: "$3,521.47", change: "+1.87%", positive: true },
-  { pair: "Gold/oz", price: "$2,342.50", change: "-0.31%", positive: false },
-];
-
 const quickActions = [
   {
     title: "Fund Customer",
-    description: "Allocate funds to customer accounts",
+    description: "Record an internal customer credit",
     icon: DollarSign,
     color: "text-green-600 dark:text-green-400",
     bg: "bg-green-100 dark:bg-green-900/50",
@@ -55,8 +46,8 @@ const quickActions = [
     bg: "bg-red-100 dark:bg-red-900/50",
   },
   {
-    title: "Create History",
-    description: "Generate transaction records",
+    title: "Record Ledger Entry",
+    description: "Add an audited internal entry",
     icon: History,
     color: "text-blue-600 dark:text-blue-400",
     bg: "bg-blue-100 dark:bg-blue-900/50",
@@ -93,13 +84,11 @@ const emptyCreateUserForm: CreateUserFormData = {
   state: "",
   zipCode: "",
   gender: "",
-  balance: "18276999.30",
+  balance: "0.00",
 };
 
 export default function AdminOverview() {
   const { toast } = useToast();
-  const [topupDialogOpen, setTopupDialogOpen] = useState(false);
-  const [topupAmount, setTopupAmount] = useState("");
   const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
   const [createUserForm, setCreateUserForm] = useState<CreateUserFormData>(emptyCreateUserForm);
   const [createdUserResult, setCreatedUserResult] = useState<any>(null);
@@ -121,22 +110,6 @@ export default function AdminOverview() {
     refetchInterval: 5000,
   });
 
-  const topupMutation = useMutation({
-    mutationFn: async (amount: string) => {
-      const res = await apiRequest("POST", "/api/admin/topup", { amount });
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/balance"] });
-      toast({ title: "Balance topped up successfully" });
-      setTopupDialogOpen(false);
-      setTopupAmount("");
-    },
-    onError: (error: any) => {
-      toast({ title: "Top up failed", description: error.message, variant: "destructive" });
-    },
-  });
-
   const createUserMutation = useMutation({
     mutationFn: async (data: CreateUserFormData) => {
       const res = await apiRequest("POST", "/api/admin/create-full-user", data);
@@ -146,7 +119,7 @@ export default function AdminOverview() {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
       queryClient.invalidateQueries({ queryKey: ["/api/transactions"] });
       setCreatedUserResult(data);
-      toast({ title: "User created successfully with full account history" });
+      toast({ title: "Customer account created successfully" });
     },
     onError: (error: any) => {
       toast({ title: "Failed to create user", description: error.message, variant: "destructive" });
@@ -165,7 +138,7 @@ export default function AdminOverview() {
   const isLoading = customersLoading || transactionsLoading || codesLoading;
 
   const totalRevenue = transactions?.reduce((sum, t) => {
-    if (t.type === "credit" || t.type === "deposit") {
+    if (t.status === "completed" && (t.type === "credit" || t.type === "deposit")) {
       return sum + parseFloat(t.amount);
     }
     return sum;
@@ -198,22 +171,13 @@ export default function AdminOverview() {
       bg: "bg-green-100 dark:bg-green-900/50",
     },
     {
-      title: "Revenue",
+      title: "Posted Internal Credits",
       value: `$${totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       icon: DollarSign,
       color: "text-amber-600 dark:text-amber-400",
       bg: "bg-amber-100 dark:bg-amber-900/50",
     },
   ];
-
-  const handleTopup = () => {
-    const amount = parseFloat(topupAmount);
-    if (isNaN(amount) || amount <= 0) {
-      toast({ title: "Please enter a valid amount", variant: "destructive" });
-      return;
-    }
-    topupMutation.mutate(topupAmount);
-  };
 
   return (
     <div className="space-y-6">
@@ -246,7 +210,7 @@ export default function AdminOverview() {
         <CardContent className="py-8 px-8">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
-              <p className="text-white/60 text-sm font-medium uppercase tracking-wider mb-2">Admin Account Balance</p>
+              <p className="text-white/60 text-sm font-medium uppercase tracking-wider mb-2">Total Internal Ledger Balance</p>
               {balanceLoading ? (
                 <Skeleton className="h-12 w-64 bg-white/10" />
               ) : (
@@ -254,50 +218,12 @@ export default function AdminOverview() {
                   ${adminBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
               )}
-              <p className="text-white/40 text-xs mt-2">Available for customer fund allocation</p>
+              <p className="text-white/40 text-xs mt-2">Sum of customer balances recorded in the internal ledger</p>
             </div>
-            <Button
-              variant="outline"
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
-              onClick={() => { setTopupAmount(""); setTopupDialogOpen(true); }}
-              data-testid="button-topup-balance"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Top Up Balance
-            </Button>
+
           </div>
         </CardContent>
       </Card>
-
-      <div>
-        <h3 className="text-lg font-semibold mb-3" data-testid="text-market-heading">Market Overview</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {marketData.map((item) => (
-            <Card key={item.pair} data-testid={`card-market-${item.pair.toLowerCase().replace(/\//g, "-")}`}>
-              <CardContent className="p-4">
-                <p className="text-xs text-muted-foreground font-medium mb-1">{item.pair}</p>
-                <p className="text-sm font-bold" style={{ fontVariantNumeric: "tabular-nums" }}>{item.price}</p>
-                <div className="flex items-center gap-1 mt-1">
-                  {item.positive ? (
-                    <TrendingUp className="w-3 h-3 text-green-600 dark:text-green-400" />
-                  ) : (
-                    <TrendingDown className="w-3 h-3 text-red-600 dark:text-red-400" />
-                  )}
-                  <span
-                    className={`text-xs font-medium ${
-                      item.positive
-                        ? "text-green-600 dark:text-green-400"
-                        : "text-red-600 dark:text-red-400"
-                    }`}
-                  >
-                    {item.change}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => (
@@ -401,50 +327,6 @@ export default function AdminOverview() {
         </CardContent>
       </Card>
 
-      <Dialog open={topupDialogOpen} onOpenChange={setTopupDialogOpen}>
-        <DialogContent className="sm:max-w-md" data-testid="dialog-topup-balance">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Plus className="w-5 h-5 text-green-600" />
-              Top Up Admin Balance
-            </DialogTitle>
-            <DialogDescription>
-              Add funds to the admin account balance for customer allocation.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Amount ($)</label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0.01"
-                placeholder="Enter amount to add"
-                value={topupAmount}
-                onChange={(e) => setTopupAmount(e.target.value)}
-                data-testid="input-topup-amount"
-              />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Current balance: <span className="font-semibold">${adminBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-            </p>
-          </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setTopupDialogOpen(false)} data-testid="button-cancel-topup">
-              Cancel
-            </Button>
-            <Button
-              onClick={handleTopup}
-              disabled={!topupAmount || parseFloat(topupAmount) <= 0 || topupMutation.isPending}
-              data-testid="button-confirm-topup"
-            >
-              {topupMutation.isPending ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />}
-              Add Funds
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <Dialog open={createUserDialogOpen} onOpenChange={(open) => {
         setCreateUserDialogOpen(open);
         if (!open) {
@@ -456,12 +338,12 @@ export default function AdminOverview() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <UserPlus className="w-5 h-5 text-emerald-600" />
-              {createdUserResult ? "User Created Successfully" : "Create User with Full History"}
+              {createdUserResult ? "User Created Successfully" : "Create Customer Account"}
             </DialogTitle>
             <DialogDescription>
               {createdUserResult
-                ? "The new user account has been set up with complete transaction history and transfers."
-                : "Create a new customer account pre-loaded with your chosen balance, 22 oil & gas equipment transactions, and 19 transfers."
+                ? "The account and assigned access code have been saved. History now comes from recorded ledger activity."
+                : "Create a customer account with an optional internal opening credit. No sample transactions or transfers are generated."
               }
             </DialogDescription>
           </DialogHeader>
@@ -493,6 +375,11 @@ export default function AdminOverview() {
                   <div>
                     <p className="text-muted-foreground">Gender</p>
                     <p className="font-medium capitalize">{createdUserResult.customer?.gender}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Assigned Login Code</p>
+                    <p className="font-medium font-mono" data-testid="text-created-access-code">{createdUserResult.accessCode}</p>
+                    <p className="text-xs text-muted-foreground">Expires in 10 minutes. Share securely.</p>
                   </div>
                 </div>
                 <Separator />
@@ -654,38 +541,10 @@ export default function AdminOverview() {
 
               <Separator />
 
-              <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-3">Starting Balance</h4>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setCreateUserForm({ ...createUserForm, balance: "18276999.30" })}
-                    data-testid="option-balance-18m"
-                    className={`rounded-lg border-2 p-4 text-left transition-all ${
-                      createUserForm.balance === "18276999.30"
-                        ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30"
-                        : "border-border bg-muted/30 hover:border-emerald-300"
-                    }`}
-                  >
-                    <p className="text-xs text-muted-foreground mb-1">Option A</p>
-                    <p className="font-bold text-lg text-emerald-700 dark:text-emerald-400">$18 Million</p>
-                    <p className="text-xs text-muted-foreground font-mono">$18,276,999.30</p>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCreateUserForm({ ...createUserForm, balance: "9230192.20" })}
-                    data-testid="option-balance-9m"
-                    className={`rounded-lg border-2 p-4 text-left transition-all ${
-                      createUserForm.balance === "9230192.20"
-                        ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30"
-                        : "border-border bg-muted/30 hover:border-emerald-300"
-                    }`}
-                  >
-                    <p className="text-xs text-muted-foreground mb-1">Option B</p>
-                    <p className="font-bold text-lg text-emerald-700 dark:text-emerald-400">$9 Million</p>
-                    <p className="text-xs text-muted-foreground font-mono">$9,230,192.20</p>
-                  </button>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="cu-opening-balance">Internal Opening Balance ($)</Label>
+                <Input id="cu-opening-balance" type="number" min="0" step="0.01" value={createUserForm.balance} onChange={(e) => setCreateUserForm({ ...createUserForm, balance: e.target.value })} required data-testid="input-opening-balance" />
+                <p className="text-xs text-muted-foreground">Any opening amount is recorded as an audited internal credit. No external financial provider is connected.</p>
               </div>
 
               <Separator />
@@ -694,9 +553,9 @@ export default function AdminOverview() {
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   This will create a Business account with a balance of{" "}
                   <span className="font-semibold">
-                    {createUserForm.balance === "9230192.20" ? "$9,230,192.20" : "$18,276,999.30"}
+                    ${Number(createUserForm.balance || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
                   </span>
-                  , 22 oil & gas equipment transactions, and 19 wire/external transfers. The user will appear immediately in the Customers list. You can assign an access code later from the Access Codes page.
+                  . Any opening balance is an internal ledger entry, not provider-verified funds. The account will have an assigned login access code valid for 10 minutes.
                 </p>
               </div>
 

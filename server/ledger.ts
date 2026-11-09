@@ -18,15 +18,16 @@ export interface LedgerEntryInput {
 
 export function parseMoneyToCents(value: unknown): bigint | null {
   const raw = String(value ?? "").trim();
-  if (!/^\d+(?:\.\d{1,2})?$/.test(raw)) return null;
+  if (!/^\d{1,15}(?:\.\d{1,2})?$/.test(raw)) return null;
   const [whole, fractional = ""] = raw.split(".");
   return BigInt(whole) * 100n + BigInt(fractional.padEnd(2, "0"));
 }
 
 export function formatCents(cents: bigint): string {
-  const whole = cents / 100n;
-  const fraction = (cents % 100n).toString().padStart(2, "0");
-  return `${whole}.${fraction}`;
+  const absolute = cents < 0n ? -cents : cents;
+  const whole = absolute / 100n;
+  const fraction = (absolute % 100n).toString().padStart(2, "0");
+  return `${cents < 0n ? "-" : ""}${whole}.${fraction}`;
 }
 
 export function ledgerDateKey(date: Date): string {
