@@ -1,0 +1,1 @@
+- [Customer history copy](customer-history-copy.md) — do not show the explanatory internal-ledger/future-date paragraph on customer history screens.
