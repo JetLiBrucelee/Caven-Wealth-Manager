@@ -53,6 +53,8 @@ export async function verifyDashboard(input: {
       }
       if (input.mobile) await page.getByTestId("button-customer-mobile-menu").click();
       await page.getByTestId("link-customer-history").click();
+      await page.getByTestId("text-history-title").waitFor({ state: "visible" });
+      assert.equal(await page.getByText("Internal ledger activity. Future-dated entries remain Pending until their scheduled date.", { exact: true }).count(), 0);
       for (const entry of input.historyEntries) {
         const row = page.getByTestId(`row-transaction-${entry.id}`);
         await row.waitFor();

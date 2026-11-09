@@ -948,7 +948,6 @@ function TransactionHistoryView() {
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-bold" data-testid="text-history-title">Transaction History</h2>
-      <p className="text-sm text-muted-foreground">Internal ledger activity. Future-dated entries remain Pending until their scheduled date.</p>
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
