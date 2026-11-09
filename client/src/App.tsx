@@ -20,6 +20,8 @@ import AdminExternalTransfers from "@/pages/admin/external-transfers";
 import AdminAccountApplications from "@/pages/admin/account-applications";
 import AdminChat from "@/pages/admin/chat";
 import AdminAuditLogs from "@/pages/admin/audit-logs";
+import AdminForgotPassword from "@/pages/admin/forgot-password";
+import AdminSecurity from "@/pages/admin/security";
 import AdminLayout from "@/components/admin-layout";
 
 function Router() {
@@ -33,6 +35,7 @@ function Router() {
       <Route path="/portal" component={Portal} />
       <Route path="/admin" component={AdminLogin} />
       <Route path="/admin/login" component={AdminLogin} />
+      <Route path="/admin/forgot-password" component={AdminForgotPassword} />
       <Route path="/admin/dashboard">
         <AdminLayout><AdminOverview /></AdminLayout>
       </Route>
@@ -59,6 +62,9 @@ function Router() {
       </Route>
       <Route path="/admin/audit-logs">
         <AdminLayout><AdminAuditLogs /></AdminLayout>
+      </Route>
+      <Route path="/admin/security">
+        <AdminLayout><AdminSecurity /></AdminLayout>
       </Route>
       <Route component={NotFound} />
     </Switch>

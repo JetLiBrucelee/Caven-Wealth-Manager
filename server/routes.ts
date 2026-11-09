@@ -12,6 +12,11 @@ import { registerLedgerRoutes } from "./ledger-routes";
 import { parseMoneyToCents, formatCents, settleDueLedgerEntries, writeAuditLog } from "./ledger";
 import { rateLimit } from "express-rate-limit";
 import { marketService } from "./market";
+import { createAdminAccess } from "./admin-auth";
+import { createAdminMiddleware, registerAdminAuthRoutes } from "./admin-auth-routes";
+
+const adminAccess = createAdminAccess();
+const requireAdmin = createAdminMiddleware(adminAccess);
 
 export async function registerRoutes(
   httpServer: Server,
@@ -39,7 +44,7 @@ export async function registerRoutes(
     })
   );
 
-  await seedAdmin();
+  await adminAccess.initialize({ password: process.env.ADMIN_PASSWORD, answer: process.env.ADMIN_RECOVERY_ANSWER });
   await settleDueLedgerEntries();
   const settlementTimer = setInterval(() => {
     settleDueLedgerEntries().catch((error) => console.error("Scheduled ledger settlement failed", error));
@@ -54,30 +59,7 @@ export async function registerRoutes(
   app.use(["/api/admin/login", "/api/customer/login", "/api/customer/verify-code"], authLimiter);
 
   // ========== ADMIN AUTH ==========
-  app.post("/api/admin/login", async (req, res) => {
-    try {
-      const { username, password } = req.body;
-      if (!username || !password) {
-        return res.status(400).json({ message: "Username and password required" });
-      }
-      const admin = await storage.validateAdminPassword(username, password);
-      if (!admin) {
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
-      await new Promise<void>((resolve, reject) => req.session.regenerate((error) => error ? reject(error) : resolve()));
-      (req.session as any).adminId = admin.id;
-      (req.session as any).isAdmin = true;
-      return res.json({ id: admin.id, username: admin.username });
-    } catch (error) {
-      return res.status(500).json({ message: "Login failed" });
-    }
-  });
-
-  app.post("/api/admin/logout", (req, res) => {
-    req.session.destroy(() => {
-      res.json({ message: "Logged out" });
-    });
-  });
+  registerAdminAuthRoutes(app, adminAccess, requireAdmin);
 
   app.get("/api/admin/me", requireAdmin, async (req, res) => {
     const admin = await storage.getAdmin((req.session as any).adminId);
@@ -233,7 +215,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/customers/:id", requireAdmin, async (req, res) => {
-    const customer = await storage.getCustomer(parseInt(req.params.id));
+    const customer = await storage.getCustomer(parseInt(String(req.params.id)));
     if (!customer) return res.status(404).json({ message: "Customer not found" });
     return res.json(sanitizeCustomer(customer));
   });
@@ -246,12 +228,12 @@ export async function registerRoutes(
   });
 
   app.get("/api/transactions/customer/:customerId", requireAdmin, async (req, res) => {
-    const list = await storage.getTransactionsByCustomer(parseInt(req.params.customerId));
+    const list = await storage.getTransactionsByCustomer(parseInt(String(req.params.customerId)));
     return res.json(list);
   });
 
   app.get("/api/transactions/:id", requireAdmin, async (req, res) => {
-    const transaction = await storage.getTransaction(parseInt(req.params.id));
+    const transaction = await storage.getTransaction(parseInt(String(req.params.id)));
     if (!transaction) return res.status(404).json({ message: "Transaction not found" });
     return res.json(transaction);
   });
@@ -296,7 +278,7 @@ export async function registerRoutes(
   app.post("/api/access-codes/:id/assign", requireAdmin, async (req, res) => {
     try {
       const { customerId } = req.body;
-      const id = parseInt(req.params.id);
+      const id = parseInt(String(req.params.id));
       if (!await storage.getCustomer(Number(customerId))) return res.status(404).json({ message: "Customer not found" });
       const { accessCodes: acTable } = await import("@shared/schema");
       const [updated] = await db.update(acTable).set({ customerId }).where(eq(acTable.id, id)).returning();
@@ -319,7 +301,7 @@ export async function registerRoutes(
 
   app.get("/api/admin/transfer-codes/:customerId", requireAdmin, async (req, res) => {
     try {
-      const codes = await storage.getTransferConfirmationCodes(parseInt(req.params.customerId));
+      const codes = await storage.getTransferConfirmationCodes(parseInt(String(req.params.customerId)));
       return res.json(codes);
     } catch (error: any) {
       return res.status(500).json({ message: error.message || "Failed to fetch transfer codes" });
@@ -357,7 +339,7 @@ export async function registerRoutes(
       if (!["active", "blocked"].includes(status)) {
         return res.status(400).json({ message: "Status must be 'active' or 'blocked'" });
       }
-      const updated = await storage.updateCustomer(parseInt(req.params.id), { status });
+      const updated = await storage.updateCustomer(parseInt(String(req.params.id)), { status });
       if (!updated) return res.status(404).json({ message: "Customer not found" });
       await writeAuditLog(db, { adminId: (req.session as any).adminId, action: "customer_access_changed", entityType: "customer", entityId: updated.id, details: { status } });
       return res.json(sanitizeCustomer(updated));
@@ -457,7 +439,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/admin/chats/:customerId", requireAdmin, async (req, res) => {
-    const customerId = parseInt(req.params.customerId);
+    const customerId = parseInt(String(req.params.customerId));
     const messages = await storage.getChatMessagesByCustomer(customerId);
     await storage.markMessagesAsRead(customerId, "customer");
     return res.json(messages);
@@ -465,7 +447,7 @@ export async function registerRoutes(
 
   app.post("/api/admin/chats/:customerId", requireAdmin, async (req, res) => {
     try {
-      const customerId = parseInt(req.params.customerId);
+      const customerId = parseInt(String(req.params.customerId));
       const { message } = req.body;
       if (!message?.trim()) return res.status(400).json({ message: "Message required" });
       const chatMessage = await storage.createChatMessage({
@@ -507,13 +489,6 @@ export async function registerRoutes(
   });
 
   return httpServer;
-}
-
-function requireAdmin(req: any, res: any, next: any) {
-  if (!(req.session as any).isAdmin || !(req.session as any).adminId) {
-    return res.status(401).json({ message: "Admin authentication required" });
-  }
-  next();
 }
 
 async function requireCustomer(req: any, res: any, next: any) {
@@ -567,16 +542,4 @@ function generateRoutingNumber(): string {
   const prefix = "0";
   const mid = String(Math.floor(Math.random() * 90000000 + 10000000));
   return prefix + mid;
-}
-
-async function seedAdmin() {
-  const username = process.env.ADMIN_USERNAME;
-  const password = process.env.ADMIN_PASSWORD;
-  if (!username || !password) throw new Error("Set ADMIN_USERNAME and ADMIN_PASSWORD in workspace secrets");
-  if (password.length < 8) throw new Error("The admin password must contain at least 8 characters");
-  const existing = await storage.getAdminByUsername(username);
-  if (!existing) {
-    await storage.createAdmin({ username, password });
-    console.log("Admin account initialized from workspace secrets");
-  }
 }

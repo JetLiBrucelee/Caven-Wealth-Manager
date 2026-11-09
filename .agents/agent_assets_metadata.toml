@@ -56,3 +56,45 @@ mtime_ms = 1794236737377
 storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:849418b0-03f9-4793-a140-a83acc9ddfd9/d3cdd6c6-d6d0-4cba-a9b5-00cd750a3e84/ea8beea4-4070-4dad-94d0-43b1b67501dd"
 storage_version_token = "1794236980741415"
 content_type = "image/png"
+
+[[outputs]]
+id = "6u-BgDuzQgOL3gHmU6qjh"
+uri = "file://generated-artifacts/alderbridge-public-mobile.jpg"
+type = "image"
+title = "Alderbridge branding preview"
+description = "Current public website on mobile, with the final Alderbridge Private Wealth wordmark."
+logical_id = "6998d264-e3d5-4207-9a5f-6e5546de08d3"
+content_hash = "sha256:8b4335921cc588e0da2d5355991b2b562f7c6e0d6321886af509782e11ac13e6"
+size = 31874
+mtime_ms = 1794238723557
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:849418b0-03f9-4793-a140-a83acc9ddfd9/6998d264-e3d5-4207-9a5f-6e5546de08d3/9156c5ed-a639-4876-bf9b-ceaccfd9f5dc"
+storage_version_token = "1794238915296233"
+content_type = "image/jpeg"
+
+[[outputs]]
+id = "Dno7MbEJjFnL_D39-BLdx"
+uri = "file://generated-artifacts/alderbridge-admin-recovery-desktop.png"
+type = "image"
+title = "Admin password recovery"
+description = "Verified recovery screen requiring both the hobby answer and a private one-time code. Captured from an isolated test server; no credentials are displayed."
+logical_id = "2a2391ea-131b-41f7-8b13-8c17804ee1f0"
+content_hash = "sha256:8d9f073bd461d0030f4a2511a019dd0becfad0e376d4e64409d1839ff400af45"
+size = 425689
+mtime_ms = 1794238299397
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:849418b0-03f9-4793-a140-a83acc9ddfd9/2a2391ea-131b-41f7-8b13-8c17804ee1f0/cbc21f1a-72e0-4990-82f1-d743aa4c3616"
+storage_version_token = "1794238915840453"
+content_type = "image/png"
+
+[[outputs]]
+id = "Dih9fDsOWoHzcCYVLvCws"
+uri = "file://generated-artifacts/alderbridge-admin-security-mobile.png"
+type = "image"
+title = "Admin security on mobile"
+description = "Verified security settings on a temporary isolated test account. No password, recovery answer or private recovery code is displayed."
+logical_id = "2e255bbe-de8c-47a6-a0bd-6b37d7486456"
+content_hash = "sha256:1d6b986c9c00facc0eff0a8b577978eb6830590ffdc0d74d9ffc9570d0b35a4a"
+size = 73353
+mtime_ms = 1794238302809
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:849418b0-03f9-4793-a140-a83acc9ddfd9/2e255bbe-de8c-47a6-a0bd-6b37d7486456/d3a50e02-4026-44ca-8326-93b00ff09b77"
+storage_version_token = "1794238916365659"
+content_type = "image/png"

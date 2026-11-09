@@ -18,6 +18,12 @@ export const admins = pgTable("admins", {
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   balance: text("balance").notNull().default("0.00"),
+  authVersion: integer("auth_version").notNull().default(0),
+  securityInitializedAt: timestamp("security_initialized_at"),
+  recoveryAnswerHash: text("recovery_answer_hash"),
+  recoveryCodeHash: text("recovery_code_hash"),
+  recoveryFailures: integer("recovery_failures").notNull().default(0),
+  recoveryLockedUntil: timestamp("recovery_locked_until"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

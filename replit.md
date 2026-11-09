@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is **Caven Wealth & Finance**, an internal-ledger financial application. It provides a public website, customer portal, and admin dashboard. The user requires the backend database to be the authoritative ledger for account creation, deposits, withdrawals, transfers, histories, and balance changes. There is no external settlement provider connected: activity must be clearly labeled Internal or Pending, never represented as provider-verified funds.
+This is **Alderbridge Private Wealth**, an internal-ledger financial application. It provides a public website, customer portal, and admin dashboard. The user requires the backend database to be the authoritative ledger for account creation, deposits, withdrawals, transfers, histories, and balance changes. There is no external settlement provider connected: activity must be clearly labeled Internal or Pending, never represented as provider-verified funds.
 
 ## Running and verifying
 
@@ -15,7 +15,7 @@ This is **Caven Wealth & Finance**, an internal-ledger financial application. It
 - Ledger amounts use exact cents. Posted entries are immutable; corrections use referenced offsetting entries. Accounts with ledger or transfer history cannot be deleted.
 - Future calendar dates remain Pending until their day arrives in `America/New_York`. Settlement runs every minute and on ledger/account reads, catches up after downtime, and posts each entry once. Insufficient-funds scheduled debits fail without reducing the balance.
 - `npm run check`, `npm run test:ledger`, and `npm run build` check code, money/date rules, and production bundling.
-- Post-merge setup restores locked dependencies, checks TypeScript, and rebuilds the app. It does not automatically approve schema changes or seed ledger data; database changes require separate review.
+- Post-merge setup restores locked dependencies, applies the approved development schema without forcing destructive changes, checks TypeScript, and rebuilds. It never seeds ledger data or migrates production.
 - `npm run verify:ledger` exercises the running development preview with temporary test accounts and removes their records afterward. It uses admin secrets without displaying them and checks authenticated zero/opening-balance dashboards in Chromium (`CHROMIUM_PATH` can override the executable). Test screenshots go to ignored `generated-artifacts/`.
 - Production schema changes for Replit-managed PostgreSQL are applied by Publish, not by startup code or deployment build hooks.
 
@@ -95,9 +95,18 @@ Preferred communication style: Simple, everyday language.
 ### Environment Variables
 - `DATABASE_URL` — PostgreSQL connection string (required)
 - `SESSION_SECRET` — Required session encryption key
-- `ADMIN_USERNAME` / `ADMIN_PASSWORD` — Secure first-time admin account initialization
+- `ADMIN_USERNAME` — The sole permitted admin identity. Historical administrator rows remain for audit relationships but cannot sign in.
+- `ADMIN_PASSWORD` / `ADMIN_RECOVERY_ANSWER` — Secure one-time admin security initialization. Passwords require at least 12 characters and at most 72 UTF-8 bytes. Once security initialization is recorded, the database password and answer hash are authoritative; changing these bootstrap secrets or restarting must not overwrite a later password reset.
 - `ISSUER_URL` — Replit OIDC issuer (optional, for Replit Auth)
 - `REPL_ID` — Replit environment identifier (auto-set by Replit)
+
+### Administrator recovery
+- First sign-in without a saved recovery code opens `/admin/security`. Verify the current password to generate a private recovery code; save it offline/in a password manager. The server stores only its hash and does not redisplay it.
+- `/admin/forgot-password` requires the hobby answer and an unused private code. A successful reset consumes/replaces the code atomically, displays its replacement once, increments the admin authentication version, and requires a fresh sign-in. Every protected admin route checks the current identity/version against the database.
+- Wrong recovery details use generic errors. Rate limits and a database-backed temporary lock after five failures bound guessing; reset and code-replacement audits never contain credentials.
+- Existing support email and financial identifiers remain unchanged during rebranding. Recognized old bank-generated labels are aliased for display only; immutable ledger text is retained.
+- `npm run test:admin` uses isolated development-only authentication schemas. `npm run verify:admin` adds real-browser recovery checks against an isolated test server. Neither resets the real administrator. Recovery codes are masked in saved screenshots.
+- Post-merge applies the approved schema to development with `db:push`, without forcing destructive changes. Publish handles managed production schema changes; there is no production migration hook or startup DDL.
 
 ### Key NPM Packages
 - **Server**: express, drizzle-orm, pg, bcryptjs, express-session, connect-pg-simple, passport (for Replit Auth)

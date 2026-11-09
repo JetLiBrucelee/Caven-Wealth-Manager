@@ -156,7 +156,7 @@ export default function CustomerDashboard({ customer: initialCustomer, onLogout 
         <div className="p-6 border-b relative">
           <button className="absolute right-2 top-1 p-2 md:hidden" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)}>×</button>
           <div className="flex items-center justify-center" data-testid="text-dashboard-brand">
-            <img src="/logo-finance.svg" alt="Caven Wealth & Finance" className="h-auto max-h-28 max-w-full object-contain drop-shadow-md" />
+            <img src="/logo-finance.svg" alt="Alderbridge Private Wealth" className="h-auto max-h-28 max-w-full object-contain drop-shadow-md" />
           </div>
           <p className="text-xs text-muted-foreground mt-3 text-center">Welcome, {customer.firstName}</p>
         </div>
@@ -1078,7 +1078,7 @@ function CardsView({ customer }: { customer: CustomerData }) {
             <div className="relative h-full flex flex-col justify-between p-6">
               <div className="flex items-center justify-between">
                 <div className="text-white font-bold text-lg tracking-wide" data-testid="text-card-bank-name">
-                  CAVEN WEALTH & FINANCE
+                  ALDERBRIDGE PRIVATE WEALTH
                 </div>
                 <div className="text-white/60 text-xs font-medium uppercase tracking-widest">Debit</div>
               </div>
@@ -1170,7 +1170,7 @@ function CardsView({ customer }: { customer: CustomerData }) {
               </div>
             </div>
             <div className="absolute top-6 left-6 text-white/30 font-bold text-lg tracking-wide">
-              CAVEN WEALTH & FINANCE
+              ALDERBRIDGE PRIVATE WEALTH
             </div>
             <div className="absolute bottom-6 right-6 flex gap-1">
               <div className="w-8 h-8 rounded-full bg-white/10" />

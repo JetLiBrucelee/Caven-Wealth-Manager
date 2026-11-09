@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ADMIN_CREDIT_REFERENCE } from "@shared/institution";
+import { ADMIN_CREDIT_REFERENCE, presentHistoryEntry } from "@shared/institution";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -310,7 +310,7 @@ export default function AdminOverview() {
                     </TableCell>
                     <TableCell className="font-medium">${parseFloat(tx.amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}</TableCell>
                     <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
-                      {tx.description}
+                      {presentHistoryEntry(tx).description}
                     </TableCell>
                     <TableCell>
                       <Badge

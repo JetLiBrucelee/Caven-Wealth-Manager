@@ -15,7 +15,7 @@ const services = [
   {
     id: "totalpay",
     icon: CreditCard,
-    title: "Caven Financial TotalPay",
+    title: "Alderbridge Private Wealth TotalPay",
     subtitle: "Comprehensive Banking Solutions",
     description:
       "TotalPay is our flagship banking solution, offering flexible terms and competitive rates that help clients manage and grow their finances.",
@@ -30,7 +30,7 @@ const services = [
   {
     id: "wealth",
     icon: LineChart,
-    title: "Caven Wealth & Finance",
+    title: "Alderbridge Private Wealth",
     subtitle: "Wealth Management Solutions",
     description:
       "Our wealth management division provides comprehensive financial planning and investment strategies designed to help individuals and businesses achieve their long-term financial goals.",
@@ -60,7 +60,7 @@ const services = [
   {
     id: "payments",
     icon: Wallet,
-    title: "Caven Financial Payments",
+    title: "Alderbridge Private Wealth Payments",
     subtitle: "Seamless Payment Processing",
     description:
       "Our payment processing solutions make it easy for clients to manage payments and transfers. Support for multiple payment methods and automated recurring billing.",

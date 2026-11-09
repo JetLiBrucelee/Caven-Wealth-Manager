@@ -83,6 +83,15 @@ test("account allocation skips reserved numbers and safely retries a database co
   await assert.rejects(allocateCustomerAccount(tx, {} as any), /existing customer/);
 });
 
+test("Alderbridge history display aliases only known bank-generated labels without changing recorded data", () => {
+  const entry = { source: "internal", type: "credit", reference: "CAVENWF88210B", description: "Internal credit recorded by Caven Wealth & Finance" };
+  assert.equal(presentHistoryEntry(entry).description, `Internal credit recorded by ${INSTITUTION.name}`);
+  assert.equal(entry.description, "Internal credit recorded by Caven Wealth & Finance");
+  assert.equal(entry.reference, "CAVENWF88210B");
+  assert.equal(presentHistoryEntry({ ...entry, source: "external" }).description, entry.description);
+  assert.equal(presentHistoryEntry({ ...entry, description: "Customer memo mentions Caven Wealth" }).description, "Customer memo mentions Caven Wealth");
+});
+
 test("new account candidates are numeric and username errors are not retried", async () => {
   for (let i = 0; i < 100; i++) assert.match(generateCustomerAccountNumber(), /^\d{12}$/);
   let attempts = 0;

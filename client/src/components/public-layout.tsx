@@ -116,7 +116,7 @@ function Header() {
             <div className="bg-white rounded-xl p-3 shadow-md">
               <img
                 src="/logo-finance.svg"
-                alt="Caven Wealth & Finance"
+                alt="Alderbridge Private Wealth"
                 className="h-auto w-[230px] md:w-[370px] object-contain"
               />
             </div>
@@ -209,7 +209,7 @@ function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="md:col-span-2">
             <div className="bg-white rounded-lg p-2 inline-block mb-4">
-              <img src="/logo-finance.svg" alt="Caven Wealth & Finance" className="h-10 w-auto object-contain" />
+              <img src="/logo-finance.svg" alt="Alderbridge Private Wealth" className="h-10 w-auto object-contain" />
             </div>
             <p className="mt-1 text-sm text-gray-400 max-w-md">
               A trusted leader in premium financing and wealth management solutions,
@@ -247,7 +247,7 @@ function Footer() {
 
         <div className="mt-10 pt-6 border-t border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-gray-500">
-            &copy; {new Date().getFullYear()} Caven Wealth & Finance. All rights reserved.
+            &copy; {new Date().getFullYear()} Alderbridge Private Wealth. All rights reserved.
           </p>
           <div className="flex items-center gap-4 text-xs text-gray-500">
             <span className="hover:text-gray-300 cursor-pointer transition-colors">Privacy Policy</span>

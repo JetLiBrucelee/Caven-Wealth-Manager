@@ -88,8 +88,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async validateAdminPassword(username: string, password: string): Promise<Admin | null> {
+    if (username !== process.env.ADMIN_USERNAME) return null;
     const admin = await this.getAdminByUsername(username);
-    if (!admin) return null;
+    if (!admin?.securityInitializedAt) return null;
     const valid = await bcrypt.compare(password, admin.password);
     return valid ? admin : null;
   }

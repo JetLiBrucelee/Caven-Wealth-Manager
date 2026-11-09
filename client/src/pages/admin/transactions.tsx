@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Pencil, Trash2, ArrowLeftRight, Receipt, Search, Filter, X, ChevronDown, ChevronUp } from "lucide-react";
 import type { Transaction, Customer } from "@shared/schema";
-import { ADMIN_CREDIT_REFERENCE, isCreditTransaction } from "@shared/institution";
+import { ADMIN_CREDIT_REFERENCE, isCreditTransaction, presentHistoryEntry } from "@shared/institution";
 import { LEDGER_TYPE_OPTIONS, ledgerTypeLabel } from "@shared/ledger-types";
 
 interface TransactionFormData {
@@ -90,7 +90,9 @@ export default function AdminTransactions() {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       const customerName = getCustomerName(tx.customerId).toLowerCase();
+      const displayDescription = presentHistoryEntry(tx).description;
       const matchesSearch =
+        displayDescription.toLowerCase().includes(q) ||
         tx.description.toLowerCase().includes(q) ||
         (tx.reference ?? "").toLowerCase().includes(q) ||
         (tx.beneficiary ?? "").toLowerCase().includes(q) ||
@@ -431,7 +433,7 @@ export default function AdminTransactions() {
                       ${parseFloat(tx.amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
-                      {tx.description}
+                      {presentHistoryEntry(tx).description}
                     </TableCell>
                     <TableCell>
                       <Badge
@@ -689,7 +691,7 @@ export default function AdminTransactions() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Description</span>
-                  <span className="font-medium text-right max-w-[200px]">{viewingTransaction.description}</span>
+                  <span className="font-medium text-right max-w-[200px]">{presentHistoryEntry(viewingTransaction).description}</span>
                 </div>
                 {viewingTransaction.reference && (
                   <div className="flex justify-between">

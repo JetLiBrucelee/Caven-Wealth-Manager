@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -30,10 +30,11 @@ export default function AdminLogin() {
   async function onSubmit(data: LoginFormValues) {
     setIsLoading(true);
     try {
-      await apiRequest("POST", "/api/admin/login", data);
+      const response = await apiRequest("POST", "/api/admin/login", data);
+      const result: { needsRecoverySetup?: boolean } = await response.json();
       await queryClient.invalidateQueries();
       toast({ title: "Login successful", description: "Welcome back!" });
-      setLocation("/admin/dashboard");
+      setLocation(result.needsRecoverySetup ? "/admin/security" : "/admin/dashboard");
     } catch (error: any) {
       toast({
         title: "Login failed",
@@ -61,7 +62,7 @@ export default function AdminLogin() {
             <Lock className="w-6 h-6 text-green-600 dark:text-green-400" />
           </div>
           <CardTitle className="text-2xl font-bold italic text-green-700 dark:text-green-400" data-testid="text-brand">
-            Caven Wealth & Finance
+            Alderbridge Private Wealth
           </CardTitle>
           <p className="text-muted-foreground text-sm" data-testid="text-subtitle">Admin Portal</p>
         </CardHeader>
@@ -115,6 +116,15 @@ export default function AdminLogin() {
               </Button>
             </form>
           </Form>
+          <div className="mt-5 border-t pt-4 text-center">
+            <Link
+              href="/admin/forgot-password"
+              className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+              data-testid="forgot-password"
+            >
+              Forgot password?
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>

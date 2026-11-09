@@ -38,7 +38,7 @@ function PhoneMockup() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[120px] h-[28px] bg-gray-800 rounded-b-2xl z-10" />
         <div className="h-full bg-gradient-to-b from-[#1a1f3a] to-[#0d1025] p-4 pt-10 overflow-hidden">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-white/80 text-xs font-medium">CWF</span>
+            <span className="text-white/80 text-xs font-medium">APW</span>
             <div className="flex items-center gap-2">
               <span className="text-white/50 text-[10px]">Mastercard</span>
               <span className="text-white/50 text-[10px]">...2074</span>
@@ -431,7 +431,7 @@ export default function Portal() {
               </div>
             </div>
             <span className="text-white/40 text-[10px]">
-              &copy; {new Date().getFullYear()} Caven Wealth & Finance
+              &copy; {new Date().getFullYear()} Alderbridge Private Wealth
             </span>
           </div>
         </div>
