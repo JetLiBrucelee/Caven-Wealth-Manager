@@ -38,7 +38,7 @@ const navLinks = [
     dropdown: [
       { label: "Get In Touch", href: "/contact" },
       { label: "Support", href: "/contact" },
-      { label: "Office Locations", href: "/contact" },
+      { label: "Email Support", href: "/contact" },
     ],
   },
   {
@@ -238,9 +238,16 @@ function Footer() {
           <div>
             <h4 className="text-sm font-semibold text-white mb-3">Contact</h4>
             <ul className="space-y-2 text-sm text-gray-400">
-              <li>New York, USA 10001</li>
-              <li>Phone: (254) 421-9855</li>
-              <li>support@cavenwealthfinancial.com</li>
+              <li>
+                <a
+                  href="mailto:support@cavenwealthfinancial.com"
+                  aria-label="Email support at support@cavenwealthfinancial.com"
+                  data-testid="link-footer-email"
+                  className="inline-block max-w-full hover:text-white underline decoration-gray-600 underline-offset-4 transition-colors [overflow-wrap:anywhere] break-all"
+                >
+                  support@cavenwealthfinancial.com
+                </a>
+              </li>
             </ul>
           </div>
         </div>

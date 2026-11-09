@@ -1,58 +1,8 @@
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import PublicLayout from "@/components/public-layout";
-import { MapPin, Phone, Mail, Clock } from "lucide-react";
-import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
-
-const contactInfo = [
-  {
-    icon: MapPin,
-    title: "Address",
-    lines: ["New York, USA 10001"],
-  },
-  {
-    icon: Phone,
-    title: "Phone",
-    lines: ["(254) 421-9855"],
-  },
-  {
-    icon: Mail,
-    title: "Email",
-    lines: ["support@cavenwealthfinancial.com"],
-  },
-  {
-    icon: Clock,
-    title: "Business Hours",
-    lines: ["Monday - Friday: 8:00 AM - 6:00 PM EST", "Saturday - Sunday: Closed"],
-  },
-];
+import { Mail } from "lucide-react";
 
 export default function Contact() {
-  const { toast } = useToast();
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    message: "",
-  });
-  const [submitting, setSubmitting] = useState(false);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setTimeout(() => {
-      toast({
-        title: "Message Sent",
-        description: "Thank you for contacting us. We will get back to you shortly.",
-      });
-      setFormData({ name: "", email: "", phone: "", message: "" });
-      setSubmitting(false);
-    }, 1000);
-  };
-
   return (
     <PublicLayout>
       <section className="relative overflow-hidden">
@@ -71,103 +21,31 @@ export default function Contact() {
 
       <section className="py-16 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2">
-              <Card className="overflow-visible">
-                <CardHeader>
-                  <CardTitle>Send Us a Message</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleSubmit} className="space-y-4" data-testid="form-contact">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-sm font-medium text-foreground mb-1 block">
-                          Full Name
-                        </label>
-                        <Input
-                          data-testid="input-name"
-                          placeholder="John Smith"
-                          value={formData.name}
-                          onChange={(e) =>
-                            setFormData((prev) => ({ ...prev, name: e.target.value }))
-                          }
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-foreground mb-1 block">
-                          Email Address
-                        </label>
-                        <Input
-                          data-testid="input-email"
-                          type="email"
-                          placeholder="john@example.com"
-                          value={formData.email}
-                          onChange={(e) =>
-                            setFormData((prev) => ({ ...prev, email: e.target.value }))
-                          }
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-foreground mb-1 block">
-                        Phone Number
-                      </label>
-                      <Input
-                        data-testid="input-phone"
-                        type="tel"
-                        placeholder="(555) 123-4567"
-                        value={formData.phone}
-                        onChange={(e) =>
-                          setFormData((prev) => ({ ...prev, phone: e.target.value }))
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-foreground mb-1 block">
-                        Message
-                      </label>
-                      <Textarea
-                        data-testid="input-message"
-                        placeholder="Tell us how we can help..."
-                        rows={5}
-                        value={formData.message}
-                        onChange={(e) =>
-                          setFormData((prev) => ({ ...prev, message: e.target.value }))
-                        }
-                        required
-                      />
-                    </div>
-                    <Button
-                      type="submit"
-                      disabled={submitting}
-                      data-testid="button-submit-contact"
-                    >
-                      {submitting ? "Sending..." : "Send Message"}
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="space-y-6">
-              {contactInfo.map((info, i) => (
-                <div key={i} className="flex gap-3" data-testid={`contact-info-${i}`}>
-                  <div className="rounded-md bg-blue-50 dark:bg-blue-900/30 p-2 h-fit">
-                    <info.icon className="h-5 w-5 text-blue-500" />
+          <div className="max-w-3xl">
+            <Card className="overflow-hidden">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="rounded-md bg-blue-50 dark:bg-blue-900/30 p-2">
+                    <Mail aria-hidden="true" className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <div>
-                    <h4 className="font-medium text-foreground">{info.title}</h4>
-                    {info.lines.map((line, li) => (
-                      <p key={li} className="text-sm text-muted-foreground">
-                        {line}
-                      </p>
-                    ))}
-                  </div>
+                  <CardTitle>Email our support team</CardTitle>
                 </div>
-              ))}
-            </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-muted-foreground">
+                  For assistance, contact our team directly. Selecting the email address opens
+                  your email app so you can send us a message.
+                </p>
+                <a
+                  href="mailto:support@cavenwealthfinancial.com"
+                  aria-label="Email support at support@cavenwealthfinancial.com"
+                  data-testid="link-contact-email"
+                  className="inline-flex max-w-full items-center gap-2 rounded-md font-medium text-blue-700 underline decoration-blue-300 underline-offset-4 transition-colors hover:text-blue-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 dark:text-blue-300 dark:hover:text-blue-200 [overflow-wrap:anywhere] break-all"
+                >
+                  support@cavenwealthfinancial.com
+                </a>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>

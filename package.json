@@ -12,6 +12,7 @@
     "test:market": "tsx --test server/market.test.ts",
     "test:admin": "tsx --test server/admin-auth.test.ts",
     "verify:admin": "tsx script/verify-admin-recovery.ts",
+    "verify:contact": "tsx script/verify-public-contact.ts",
     "verify:market-live": "VERIFY_LIVE_MARKET=true tsx script/verify-ledger.ts",
     "verify:ledger": "tsx script/verify-ledger.ts",
     "db:push": "drizzle-kit push"

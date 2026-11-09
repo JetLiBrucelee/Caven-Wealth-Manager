@@ -98,3 +98,17 @@ mtime_ms = 1794238302809
 storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:849418b0-03f9-4793-a140-a83acc9ddfd9/2e255bbe-de8c-47a6-a0bd-6b37d7486456/d3a50e02-4026-44ca-8326-93b00ff09b77"
 storage_version_token = "1794238916365659"
 content_type = "image/png"
+
+[[outputs]]
+id = "J02ik0qcysQCD32dn_xQU"
+uri = "file://generated-artifacts/contact-email-only-390.png"
+type = "image"
+title = "Email-only Contact Us"
+description = "Verified mobile preview of the updated contact page and footer, with the public phone number and simulated form removed."
+logical_id = "bd29c063-7c6d-4cc6-ab21-e60bce2ec217"
+content_hash = "sha256:f309dd6da9327aadd6b626dd981d2bba2c24081480b6125c05e81426def4f0fe"
+size = 139561
+mtime_ms = 1794243597939
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:849418b0-03f9-4793-a140-a83acc9ddfd9/bd29c063-7c6d-4cc6-ab21-e60bce2ec217/f06718a2-6205-4989-83cf-e4337ef295b7"
+storage_version_token = "1794243676969865"
+content_type = "image/png"
