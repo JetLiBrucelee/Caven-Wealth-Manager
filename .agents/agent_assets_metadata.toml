@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "JHPkz6MF8PMVv32mIaM1R"
+uri = "file://generated-artifacts/ledger-dashboard-opening.png"
+type = "image"
+title = "History preview — internal test account"
+description = "The recent-history card shows a completed $1,000 internal opening credit with its date, description, status, and reference. This is a temporary test account, not real customer funds."
+logical_id = "db7a0cc3-69a1-47b0-872b-79ca270fe0f4"
+content_hash = "sha256:595d6d867cc8cebd0fa71a8f01330ab1cf81d6c810c24fc541a04c1091468815"
+size = 138562
+mtime_ms = 1794230931033
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:849418b0-03f9-4793-a140-a83acc9ddfd9/db7a0cc3-69a1-47b0-872b-79ca270fe0f4/39eea5da-2ef1-47e4-b34e-b423f9b31574"
+storage_version_token = "1794231173775961"
+content_type = "image/png"
