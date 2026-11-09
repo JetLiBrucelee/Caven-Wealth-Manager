@@ -60,6 +60,8 @@ export const transactions = pgTable("transactions", {
   beneficiary: text("beneficiary"),
   beneficiaryBank: text("beneficiary_bank"),
   beneficiaryAccount: text("beneficiary_account"),
+  source: text("source").notNull().default("internal"),
+  balanceAfter: text("balance_after"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -90,6 +92,7 @@ export const transfers = pgTable("transfers", {
   purpose: text("purpose"),
   referenceNumber: text("reference_number"),
   declineReason: text("decline_reason"),
+  source: text("source").notNull().default("internal"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -140,6 +143,17 @@ export const transferConfirmationCodes = pgTable("transfer_confirmation_codes", 
   transferId: integer("transfer_id").references(() => transfers.id),
   status: text("status").notNull().default("active"),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const auditLogs = pgTable("audit_logs", {
+  id: serial("id").primaryKey(),
+  adminId: integer("admin_id").references(() => admins.id, { onDelete: "set null" }),
+  actorType: text("actor_type").notNull().default("admin"),
+  action: text("action").notNull(),
+  entityType: text("entity_type").notNull(),
+  entityId: integer("entity_id"),
+  details: jsonb("details").$type<Record<string, unknown>>().notNull().default({}),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const insertAccessCodeSchema = createInsertSchema(accessCodes).omit({
