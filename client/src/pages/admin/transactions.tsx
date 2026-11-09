@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Pencil, Trash2, ArrowLeftRight, Receipt, Search, Filter, X, ChevronDown, ChevronUp } from "lucide-react";
 import type { Transaction, Customer } from "@shared/schema";
 import { ADMIN_CREDIT_REFERENCE, isCreditTransaction } from "@shared/institution";
+import { LEDGER_TYPE_OPTIONS, ledgerTypeLabel } from "@shared/ledger-types";
 
 interface TransactionFormData {
   customerId: string;
@@ -287,11 +288,9 @@ export default function AdminTransactions() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All types</SelectItem>
-                      <SelectItem value="credit">Credit</SelectItem>
-                      <SelectItem value="debit">Debit</SelectItem>
-                      <SelectItem value="transfer">Transfer</SelectItem>
-                      <SelectItem value="deposit">Deposit</SelectItem>
-                      <SelectItem value="withdrawal">Withdrawal</SelectItem>
+                      {LEDGER_TYPE_OPTIONS.map(({ value, label }) => (
+                        <SelectItem key={value} value={value}>{label}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -425,7 +424,7 @@ export default function AdminTransactions() {
                       {getCustomerName(tx.customerId)}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="capitalize">{tx.type}</Badge>
+                      <Badge variant="outline">{ledgerTypeLabel(tx.type)}</Badge>
                       <Badge variant="secondary" className="ml-1">Internal</Badge>
                     </TableCell>
                     <TableCell className="font-medium">
@@ -489,6 +488,12 @@ export default function AdminTransactions() {
               {editingTransaction ? "Edit Transaction" : "Add Transaction"}
             </DialogTitle>
           </DialogHeader>
+          {!editingTransaction && (
+            <p className="text-sm text-muted-foreground" data-testid="text-manual-ledger-notice">
+              Manually record ledger activity only. This does not send money, create or approve a customer transfer request,
+              or credit an internal recipient. Customer requests must use the confirmation and approval flow in Pending Transfers.
+            </p>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label>Customer</Label>
@@ -519,11 +524,9 @@ export default function AdminTransactions() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="credit">Credit</SelectItem>
-                    <SelectItem value="debit">Debit</SelectItem>
-                    <SelectItem value="transfer">Transfer</SelectItem>
-                    <SelectItem value="deposit">Deposit</SelectItem>
-                    <SelectItem value="withdrawal">Withdrawal</SelectItem>
+                    {LEDGER_TYPE_OPTIONS.map(({ value, label }) => (
+                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -678,7 +681,7 @@ export default function AdminTransactions() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Type</span>
-                  <span className="font-medium capitalize">{viewingTransaction.type}</span>
+                  <span className="font-medium">{ledgerTypeLabel(viewingTransaction.type)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Date</span>

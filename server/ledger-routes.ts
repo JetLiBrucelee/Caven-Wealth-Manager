@@ -9,11 +9,11 @@ import { db } from "./db";
 import { storage } from "./storage";
 import { ADMIN_CREDIT_REFERENCE, INSTITUTION, OPENING_BALANCE_DESCRIPTION, isCreditTransaction } from "@shared/institution";
 import { allocateCustomerAccount } from "./customer-account";
+import { LEDGER_TYPES } from "@shared/ledger-types";
 import {
   createLedgerEntryInTransaction, formatCents, parseMoneyToCents, writeAuditLog,
 } from "./ledger";
 
-const ledgerTypes = ["credit", "deposit", "debit", "withdrawal", "wire_transfer", "external_transfer", "internal_transfer", "bill_pay"];
 const publicCustomer = (customer: any) => {
   const { password, ...safe } = customer;
   return safe;
@@ -153,7 +153,7 @@ export function registerLedgerRoutes(app: Express, requireAdmin: RequestHandler)
   const createEntry: RequestHandler = async (req, res) => {
     try {
       const customerId = req.params.id ? Number(req.params.id) : Number(req.body.customerId);
-      if (!ledgerTypes.includes(req.body.type)) throw new Error("Select a valid transaction type");
+      if (!LEDGER_TYPES.includes(req.body.type)) throw new Error("Select a valid transaction type");
       if (!["completed", "pending", "failed"].includes(req.body.status || "completed")) throw new Error("Select a valid status");
       if (!req.body.description?.trim()) throw new Error("A description is required");
       const entry = await db.transaction((tx) => createLedgerEntryInTransaction(tx, {

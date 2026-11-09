@@ -97,6 +97,8 @@ try {
     const transfer = await user.request("/api/customer/transfers", "POST", {
       type, amount, internalToAccount: b.customer.accountNumber, description: "Verification transfer",
     }, 201);
+    await admin.request(`/api/transfers/${transfer.id}/status`, "PATCH", { status: "approved" }, 400);
+    await admin.request(`/api/transfers/${transfer.id}/status`, "PATCH", { status: "processing" }, 400);
     const code = await admin.request("/api/admin/transfer-codes/generate", "POST", { customerId: a.customer.id, transferId: transfer.id });
     await user.request(`/api/customer/transfers/${transfer.id}/confirm`, "POST", { code: code.code });
     return transfer;
@@ -172,9 +174,39 @@ try {
   }, 201);
   assert.equal(manualDebit.reference, "NORMAL-DEBIT");
   assert.equal((await admin.request(`/api/customers/${b.customer.id}`)).balance, "102.39");
+  const transfersBeforeManualEntries = await admin.request("/api/transfers");
+  const senderBeforeManualEntries = (await admin.request(`/api/customers/${a.customer.id}`)).balance;
   const uiCredit = await verifyAdminCreditForms({ base, cookie: admin.cookie, customerId: b.customer.id, accountNumber: b.customer.accountNumber });
   assert.equal(uiCredit.reference, ADMIN_CREDIT_REFERENCE);
-  assert.equal((await admin.request(`/api/customers/${b.customer.id}`)).balance, "102.40");
+  assert.equal((await admin.request(`/api/customers/${b.customer.id}`)).balance, "102.34");
+  const entriesBeforeInvalidType = await admin.request(`/api/transactions/customer/${b.customer.id}`);
+  const invalidType = await admin.request("/api/transactions", "POST", {
+    customerId: b.customer.id, type: "transfer", amount: "0.01",
+    description: "Must choose an explicit type", date: new Date().toISOString(),
+  }, 400);
+  assert.equal(invalidType.message, "Select a valid transaction type");
+  assert.equal((await admin.request(`/api/transactions/customer/${b.customer.id}`)).length, entriesBeforeInvalidType.length);
+  assert.equal((await admin.request(`/api/customers/${b.customer.id}`)).balance, "102.34");
+  const manualOutgoingIds: number[] = [];
+  for (const type of ["wire_transfer", "external_transfer", "internal_transfer", "bill_pay"]) {
+    for (const reference of [`MANUAL-${type}-${suffix}`, ""]) {
+      const entry = await admin.request("/api/transactions", "POST", {
+        customerId: b.customer.id, type, amount: "0.01", reference,
+        description: "Verification explicit outgoing entry", date: new Date().toISOString(),
+        beneficiaryAccount: a.customer.accountNumber,
+      }, 201);
+      assert.equal(entry.type, type);
+      assert.equal(entry.status, "completed");
+      assert.equal(entry.institutionAccountReference, null);
+      assert.notEqual(entry.reference, ADMIN_CREDIT_REFERENCE);
+      if (reference) assert.equal(entry.reference, reference);
+      else assert.match(entry.reference, /^INT-/);
+      manualOutgoingIds.push(entry.id);
+    }
+  }
+  assert.equal((await admin.request(`/api/customers/${b.customer.id}`)).balance, "102.26");
+  assert.equal((await admin.request(`/api/customers/${a.customer.id}`)).balance, senderBeforeManualEntries);
+  assert.deepEqual(await admin.request("/api/transfers"), transfersBeforeManualEntries);
   assert.equal((await admin.request(`/api/transactions/${legacy.id}`)).reference, legacy.reference);
   assert.equal((await admin.request(`/api/customers/${a.customer.id}`)).accountNumber, originalAccountNumber);
   await admin.request(`/api/customers/${a.customer.id}`, "DELETE", undefined, 409);
@@ -182,12 +214,12 @@ try {
   await user.request("/api/customer/login", "POST", { username: a.customer.username, password });
   await user.request("/api/customer/verify-code", "POST", { code: a.accessCode }, 401);
   const audit = await admin.request("/api/admin/audit-logs");
-  for (const id of [...directCreditIds, deposit.id, adjustment.id, uiCredit.id]) {
+  for (const id of [...directCreditIds, deposit.id, adjustment.id, uiCredit.id, ...manualOutgoingIds]) {
     assert.ok(audit.some((entry: any) => entry.entityType === "transaction" && entry.entityId === id && entry.actorType === "admin" && entry.adminId === adminLogin.id));
   }
   assert.ok(audit.some((entry: any) => entry.action === "scheduled_ledger_entry_posted" && entry.entityId === scheduled.id));
   assert.ok(audit.some((entry: any) => entry.entityType === "transaction" && entry.entityId === opening.id && entry.actorType === "admin" && entry.adminId));
-  console.log("Ledger verification passed: fixed admin credit references across opening/funding/manual/deposit/adjustment/scheduled/UI paths, independent entry IDs and audits, preserved historical and transfer references, authenticated dashboards, exact balances, idempotent approvals, concurrent outflows, and scoped access codes.");
+  console.log("Ledger verification passed: explicit manual outgoing types and filters, rejected generic transfer, normal outgoing references and audits, no manual transfer requests or recipient credits, preserved customer confirmation/approval, fixed admin credit forms and references, historical entries, dashboards, exact balances, idempotent approvals, concurrent outflows, and scoped access codes.");
 } finally {
   await user.request("/api/customer/logout", "POST", {}).catch(() => {});
   await admin.request("/api/admin/logout", "POST", {}).catch(() => {});
