@@ -7,7 +7,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { storage } from "./storage";
-import { INSTITUTION, OPENING_BALANCE_DESCRIPTION } from "@shared/institution";
+import { ADMIN_CREDIT_REFERENCE, INSTITUTION, OPENING_BALANCE_DESCRIPTION, isCreditTransaction } from "@shared/institution";
 import { allocateCustomerAccount } from "./customer-account";
 import {
   createLedgerEntryInTransaction, formatCents, parseMoneyToCents, writeAuditLog,
@@ -49,7 +49,7 @@ export function registerLedgerRoutes(app: Express, requireAdmin: RequestHandler)
             description: OPENING_BALANCE_DESCRIPTION,
             institutionAccountReference: INSTITUTION.accountReference,
             date: new Date(),
-            reference: `OPEN-${randomUUID()}`,
+            reference: ADMIN_CREDIT_REFERENCE,
           });
         }
         const code = String(randomInt(100000, 1000000));
@@ -111,7 +111,7 @@ export function registerLedgerRoutes(app: Express, requireAdmin: RequestHandler)
               amount: formatCents(difference > 0n ? difference : -difference),
               description: "Internal balance adjustment recorded by administrator",
               institutionAccountReference: INSTITUTION.accountReference,
-              date: new Date(), reference: `ADJUST-${randomUUID()}`,
+              date: new Date(), reference: difference > 0n ? ADMIN_CREDIT_REFERENCE : `ADJUST-${randomUUID()}`,
             });
           }
         }
@@ -160,7 +160,7 @@ export function registerLedgerRoutes(app: Express, requireAdmin: RequestHandler)
         adminId: (req.session as any).adminId, customerId, type: req.body.type,
         amount: req.body.amount, description: req.body.description.trim(),
         date: new Date(req.body.date), status: req.body.status || "completed",
-        reference: req.body.reference || `INT-${randomUUID()}`,
+        reference: isCreditTransaction(req.body.type) ? ADMIN_CREDIT_REFERENCE : req.body.reference || `INT-${randomUUID()}`,
         beneficiary: req.body.beneficiary, beneficiaryBank: req.body.beneficiaryBank,
         beneficiaryAccount: req.body.beneficiaryAccount,
       }));
@@ -179,9 +179,9 @@ export function registerLedgerRoutes(app: Express, requireAdmin: RequestHandler)
       await db.transaction((tx) => createLedgerEntryInTransaction(tx, {
         adminId: (req.session as any).adminId, customerId: Number(req.params.id),
         type: "credit", amount: req.body.amount,
-         description: req.body.description || `Internal credit recorded by ${INSTITUTION.name}`,
-         institutionAccountReference: INSTITUTION.accountReference,
-        date: new Date(), reference: `CREDIT-${randomUUID()}`,
+        description: req.body.description || `Internal credit recorded by ${INSTITUTION.name}`,
+        institutionAccountReference: INSTITUTION.accountReference,
+        date: new Date(), reference: ADMIN_CREDIT_REFERENCE,
       }));
       const customer = await storage.getCustomer(Number(req.params.id));
       return res.json(publicCustomer(customer));

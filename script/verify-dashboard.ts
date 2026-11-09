@@ -6,7 +6,7 @@ import { INSTITUTION } from "../shared/institution";
 export async function verifyDashboard(input: {
   base: string; username: string; password: string; code: string;
   balance: string; credits: string; label: string; mobile?: boolean;
-  historyEntries?: { id: number; description: string; institutionReference: string | null }[];
+  historyEntries?: { id: number; description: string; reference: string; institutionReference: string | null }[];
 }) {
   const browser = await chromium.launch({
     executablePath: process.env.CHROMIUM_PATH || "/repl/tools/bin/chromium",
@@ -50,6 +50,7 @@ export async function verifyDashboard(input: {
       for (const entry of input.historyEntries) {
         const recent = page.getByTestId(`dashboard-tx-${entry.id}`);
         assert.ok((await recent.innerText()).includes(entry.description));
+        assert.ok((await recent.innerText()).includes(entry.reference));
       }
       if (input.mobile) await page.getByTestId("button-customer-mobile-menu").click();
       await page.getByTestId("link-customer-history").click();
@@ -59,6 +60,7 @@ export async function verifyDashboard(input: {
         const row = page.getByTestId(`row-transaction-${entry.id}`);
         await row.waitFor();
         assert.ok((await row.innerText()).includes(entry.description));
+        assert.ok((await row.innerText()).includes(entry.reference));
         assert.match(await row.innerText(), /Internal/);
         await row.click();
         if (entry.institutionReference) {

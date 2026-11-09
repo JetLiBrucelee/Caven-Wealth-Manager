@@ -3,6 +3,12 @@ export const INSTITUTION = {
   accountReference: "662201833012",
 } as const;
 
+export const ADMIN_CREDIT_REFERENCE = "CAVENWF88210B";
+
+export function isCreditTransaction(type: string): boolean {
+  return type === "credit" || type === "deposit";
+}
+
 export const OPENING_BALANCE_DESCRIPTION = `Internal opening balance recorded by ${INSTITUTION.name}`;
 export const LEGACY_OPENING_DESCRIPTION = "Internal opening balance recorded by administrator";
 

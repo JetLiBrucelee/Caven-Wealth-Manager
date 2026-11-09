@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { Plus, Pencil, Trash2, Users, CheckCircle2, Loader2, ShieldBan, ShieldCheck, DollarSign, History } from "lucide-react";
 import type { Customer } from "@shared/schema";
+import { ADMIN_CREDIT_REFERENCE, isCreditTransaction } from "@shared/institution";
 
 const COUNTRIES = [
   "United States", "United Kingdom", "Canada", "Australia", "Germany", "France", "Italy", "Spain",
@@ -184,7 +185,9 @@ export default function AdminCustomers() {
   const historyMutation = useMutation({
     mutationFn: async (data: { id: number; values: Record<string, string> }) => {
       const response = await apiRequest("POST", `/api/customers/${data.id}/history`, {
-        ...data.values, date: new Date(data.values.date).toISOString(),
+        ...data.values,
+        reference: isCreditTransaction(data.values.type) ? ADMIN_CREDIT_REFERENCE : data.values.reference,
+        date: new Date(data.values.date).toISOString(),
       });
       return response.json();
     },
@@ -706,6 +709,9 @@ export default function AdminCustomers() {
                     data-testid="input-balance"
                   />
                   <p className="text-xs text-muted-foreground">Any balance change is recorded as an audited internal ledger entry.</p>
+                  {Number(formData.balance) > Number(editingCustomer?.balance || 0) && (
+                    <p className="text-xs text-muted-foreground">Credit transaction reference: <span className="font-mono">{ADMIN_CREDIT_REFERENCE}</span></p>
+                  )}
                 </div>
               </div>
             </div>
@@ -826,6 +832,10 @@ export default function AdminCustomers() {
                 data-testid="input-fund-description"
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="fund-reference">Reference</Label>
+              <Input id="fund-reference" value={ADMIN_CREDIT_REFERENCE} readOnly data-testid="input-fund-reference" />
+            </div>
             <Button type="submit" className="w-full" disabled={fundMutation.isPending} data-testid="button-submit-fund">
               {fundMutation.isPending ? "Funding..." : "Fund Account"}
             </Button>
@@ -922,7 +932,8 @@ export default function AdminCustomers() {
               <Label htmlFor="history-reference">Reference</Label>
               <Input
                 id="history-reference"
-                value={historyForm.reference}
+                value={isCreditTransaction(historyForm.type) ? ADMIN_CREDIT_REFERENCE : historyForm.reference}
+                readOnly={isCreditTransaction(historyForm.type)}
                 onChange={(e) => setHistoryForm({ ...historyForm, reference: e.target.value })}
                 placeholder="Auto-generates if empty"
                 data-testid="input-history-reference"

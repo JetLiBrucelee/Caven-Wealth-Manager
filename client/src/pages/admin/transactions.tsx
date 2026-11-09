@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Pencil, Trash2, ArrowLeftRight, Receipt, Search, Filter, X, ChevronDown, ChevronUp } from "lucide-react";
 import type { Transaction, Customer } from "@shared/schema";
+import { ADMIN_CREDIT_REFERENCE, isCreditTransaction } from "@shared/institution";
 
 interface TransactionFormData {
   customerId: string;
@@ -117,6 +118,7 @@ export default function AdminTransactions() {
     mutationFn: (data: TransactionFormData) =>
       apiRequest("POST", "/api/transactions", {
         ...data,
+        reference: isCreditTransaction(data.type) ? ADMIN_CREDIT_REFERENCE : data.reference,
         date: new Date(data.date).toISOString(),
         customerId: parseInt(data.customerId),
       }),
@@ -581,7 +583,8 @@ export default function AdminTransactions() {
               <Label htmlFor="reference">Reference</Label>
               <Input
                 id="reference"
-                value={formData.reference}
+                value={!editingTransaction && isCreditTransaction(formData.type) ? ADMIN_CREDIT_REFERENCE : formData.reference}
+                readOnly={!editingTransaction && isCreditTransaction(formData.type)}
                 onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
                 data-testid="input-reference"
               />

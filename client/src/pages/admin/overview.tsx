@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ADMIN_CREDIT_REFERENCE } from "@shared/institution";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -544,6 +545,9 @@ export default function AdminOverview() {
               <div className="space-y-2">
                 <Label htmlFor="cu-opening-balance">Internal Opening Balance ($)</Label>
                 <Input id="cu-opening-balance" type="number" min="0" step="0.01" value={createUserForm.balance} onChange={(e) => setCreateUserForm({ ...createUserForm, balance: e.target.value })} required data-testid="input-opening-balance" />
+                {Number(createUserForm.balance) > 0 && (
+                  <p className="text-xs text-muted-foreground">Credit transaction reference: <span className="font-mono">{ADMIN_CREDIT_REFERENCE}</span></p>
+                )}
                 <p className="text-xs text-muted-foreground">Any opening amount is recorded as an audited internal credit. No external financial provider is connected.</p>
               </div>
 

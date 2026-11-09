@@ -19,14 +19,14 @@ content_type = "image/png"
 id = "zZvZjRJUEWtXLgD3SCeQk"
 uri = "file://generated-artifacts/ledger-history-opening.png"
 type = "image"
-title = "Updated history — desktop"
-description = "Temporary test account showing the institution wording, opening credit, funding credit, and institution account reference. The large in-app banner has been removed."
+title = "Customer history with the admin credit reference"
+description = "Authenticated test-account history showing CAVENWF88210B on separate opening and funding credits. Temporary test records were cleaned up after verification."
 logical_id = "cf55f094-3bc5-485d-b176-dfd1c5bc68e4"
-content_hash = "sha256:3957670fff832ee6c65d42ad5c579474991523793f8e7044f0f9b88180c02101"
-size = 98485
-mtime_ms = 1794232899509
-storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:849418b0-03f9-4793-a140-a83acc9ddfd9/cf55f094-3bc5-485d-b176-dfd1c5bc68e4/2e61321a-594f-4e3c-979e-f3443e4d1124"
-storage_version_token = "1794232996183582"
+content_hash = "sha256:75d14d34129669f9bde6cdeabadea570f425318c86a263d97020c303b4f65fba"
+size = 89717
+mtime_ms = 1794233805949
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:849418b0-03f9-4793-a140-a83acc9ddfd9/cf55f094-3bc5-485d-b176-dfd1c5bc68e4/0399596d-f042-469b-b0ff-68030f97dfe1"
+storage_version_token = "1794233879506965"
 content_type = "image/png"
 
 [[outputs]]

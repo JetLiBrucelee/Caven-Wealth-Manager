@@ -3,10 +3,19 @@ import assert from "node:assert/strict";
 import { formatCents, isFutureLedgerDate, ledgerDateKey, parseMoneyToCents } from "./ledger";
 import { pool } from "./db";
 import { formatLedgerAmount, summarizeLedger } from "../client/src/lib/ledger-summary";
-import { INSTITUTION, LEGACY_OPENING_DESCRIPTION, OPENING_BALANCE_DESCRIPTION, presentHistoryEntry } from "../shared/institution";
+import { ADMIN_CREDIT_REFERENCE, INSTITUTION, LEGACY_OPENING_DESCRIPTION, OPENING_BALANCE_DESCRIPTION, presentHistoryEntry, isCreditTransaction } from "../shared/institution";
 import { allocateCustomerAccount, generateCustomerAccountNumber } from "./customer-account";
 
 after(() => pool.end());
+
+test("admin credit types share a reference without changing outgoing transaction types", () => {
+  assert.equal(ADMIN_CREDIT_REFERENCE, "CAVENWF88210B");
+  for (const type of ["credit", "deposit"]) assert.equal(isCreditTransaction(type), true);
+  for (const type of ["debit", "withdrawal", "wire_transfer", "external_transfer", "internal_transfer", "bill_pay"]) {
+    assert.equal(isCreditTransaction(type), false);
+  }
+  assert.notEqual(ADMIN_CREDIT_REFERENCE, INSTITUTION.accountReference);
+});
 
 test("money is represented in exact cents", () => {
   assert.equal(parseMoneyToCents("0.10"), 10n);
