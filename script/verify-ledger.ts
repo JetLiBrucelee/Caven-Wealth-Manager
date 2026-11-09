@@ -58,6 +58,7 @@ try {
   assert.equal(a.transfersCreated, 0);
   assert.equal(b.transactionsCreated, 0);
   await user.request("/api/customer/login", "POST", { username: a.customer.username, password });
+  await user.request("/api/customer/market", "GET", undefined, 401);
   await user.request("/api/customer/verify-code", "POST", { code: b.accessCode }, 401);
   const login = await user.request("/api/customer/verify-code", "POST", { code: a.accessCode });
   assert.equal(login.customer.balance, "1000.00");

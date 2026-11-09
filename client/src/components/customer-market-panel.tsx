@@ -12,10 +12,10 @@ function formatPrice(price: number | null, currency: string): string {
       style: "currency",
       currency,
       minimumFractionDigits: 2,
-      maximumFractionDigits: 4,
+      maximumFractionDigits: 2,
     }).format(price);
   } catch {
-    return `${currency} ${price.toLocaleString(undefined, { maximumFractionDigits: 4 })}`;
+    return `${currency} ${price.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
   }
 }
 
@@ -296,7 +296,7 @@ export function CustomerMarketSummary() {
         <p className="market-summary-error" role="status">Market summary unavailable. Account balances are unaffected.</p>
       ) : (
         <div className="market-summary-rows">
-          {SUMMARY_INSTRUMENTS.map(({ id, label }) => {
+          {SUMMARY_INSTRUMENTS.filter(({ id }) => !snapshot || snapshot.summary.some((quote) => quote.id === id)).map(({ id, label }) => {
             const quote = snapshot?.summary.find((item) => item.id === id);
             const status = quote && snapshot
               ? quoteStatus(quote, snapshot, now)

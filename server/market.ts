@@ -1,6 +1,7 @@
 import type { MarketQuote, MarketSnapshot } from "@shared/market";
 
 type FeedMode = "realtime" | "delayed";
+type SummaryId = "dow" | "nasdaq" | "gold";
 export interface MarketConfig {
   apiKey?: string;
   displayApproved: boolean;
@@ -10,6 +11,7 @@ export interface MarketConfig {
   summarySymbols?: { dow?: string; nasdaq?: string; gold?: string };
   summaryFeedMode?: FeedMode;
   summaryDelayMinutes?: number;
+  summaryInstruments?: SummaryId[];
 }
 interface Instrument {
   id: string; symbol: string; name: string; kind: MarketQuote["kind"]; providerSymbol?: string;
@@ -54,6 +56,7 @@ export function readMarketConfig(): MarketConfig {
     summaryFeedMode: validMode(env.TWELVE_DATA_SUMMARY_FEED_MODE) ? env.TWELVE_DATA_SUMMARY_FEED_MODE : undefined,
     summaryDelayMinutes: env.TWELVE_DATA_SUMMARY_DELAY_MINUTES ? Number(env.TWELVE_DATA_SUMMARY_DELAY_MINUTES) : undefined,
     summarySymbols: { dow: env.TWELVE_DATA_DOW_SYMBOL, nasdaq: env.TWELVE_DATA_NASDAQ_SYMBOL, gold: env.TWELVE_DATA_GOLD_SYMBOL },
+    summaryInstruments: env.TWELVE_DATA_SUMMARY_INSTRUMENTS?.split(",").map((id) => id.trim()).filter((id): id is SummaryId => ["dow", "nasdaq", "gold"].includes(id)),
   };
 }
 
@@ -93,6 +96,7 @@ export function createMarketService(options: {
   let cooldownUntil = 0;
   let inFlight: Promise<MarketSnapshot> | null = null;
   let lastConfigSignature = "";
+  const metadata = new Map<string, { type: string; currency: string; checkedAt: number }>();
   const staleSnapshot = (snapshot: MarketSnapshot): MarketSnapshot => ({
     ...snapshot, status: "unavailable",
     equities: snapshot.equities.map(staleQuote), summary: snapshot.summary.map(staleQuote),
@@ -124,7 +128,30 @@ export function createMarketService(options: {
           }
           if (response.status >= 500 || raw?.code >= 500) throw new ProviderRequestError(true);
           if (!response.ok || raw?.status === "error") throw new ProviderRequestError(false);
-          const normalized = normalizeQuote(item, raw, now(), mode, delay);
+          let verifiedType = raw.type || raw.instrument_type;
+          let verifiedCurrency = raw.currency;
+          // Forex/metals quote payloads may omit metadata; use the provider catalog, never a guessed currency.
+          if ((item.kind === "index" || item.kind === "spot") && (!verifiedType || !verifiedCurrency)) {
+            let cachedMetadata = metadata.get(item.providerSymbol);
+            if (!cachedMetadata || now() - cachedMetadata.checkedAt > 86400_000) {
+              const metadataURL = new URL("https://api.twelvedata.com/symbol_search");
+              metadataURL.searchParams.set("symbol", item.providerSymbol);
+              const metadataResponse = await fetcher(metadataURL, {
+                headers: { Authorization: `apikey ${settings.apiKey}` },
+                signal: AbortSignal.timeout(options.timeoutMs ?? 8000),
+              });
+              if (!metadataResponse.ok) throw new ProviderRequestError(false);
+              const catalog = await metadataResponse.json();
+              const match = catalog.data?.find((entry: any) => entry.symbol === item.providerSymbol && entry.currency === "USD"
+                && (item.kind === "index" ? /index/i.test(entry.instrument_type || "") : /precious\s*metal|physical\s*currency|commodity|forex/i.test(entry.instrument_type || "")));
+              if (!match) throw new ProviderRequestError(false);
+              cachedMetadata = { type: match.instrument_type, currency: match.currency, checkedAt: now() };
+              metadata.set(item.providerSymbol, cachedMetadata);
+            }
+            verifiedType ||= cachedMetadata.type;
+            verifiedCurrency ||= cachedMetadata.currency;
+          }
+          const normalized = normalizeQuote(item, { ...raw, type: verifiedType, currency: verifiedCurrency }, now(), mode, delay);
           if (normalized.price === null) throw new ProviderRequestError(false);
           return normalized;
         } catch (error) {
@@ -140,9 +167,10 @@ export function createMarketService(options: {
       }
       return unavailable(item, "Quote temporarily unavailable");
     }
+    const selectedSummary = summary.filter((item) => !settings.summaryInstruments || settings.summaryInstruments.includes(item.id as SummaryId));
     const [stockQuotes, summaryQuotes] = await Promise.all([
       Promise.all(equities.map((item) => quote(item, settings.feedMode!, settings.delayMinutes))),
-      Promise.all(summary.map((item) => {
+      Promise.all(selectedSummary.map((item) => {
         const providerSymbol = settings.summarySymbols?.[item.id as "dow" | "nasdaq" | "gold"];
         return settings.summaryApproved && feedReady(settings.summaryFeedMode, settings.summaryDelayMinutes) && providerSymbol
           ? quote({ ...item, providerSymbol }, settings.summaryFeedMode!, settings.summaryDelayMinutes)
@@ -152,7 +180,7 @@ export function createMarketService(options: {
     const available = [...stockQuotes, ...summaryQuotes].filter((item) => item.price !== null && item.state !== "stale").length;
     return {
       provider: "Twelve Data", configured: true,
-      status: available === 6 && !hadFailure ? "available" : available ? "partial" : "unavailable",
+      status: available === stockQuotes.length + summaryQuotes.length && !hadFailure ? "available" : available ? "partial" : "unavailable",
       fetchedAt: new Date(now()).toISOString(), refreshIntervalMs: MARKET_REFRESH_MS,
       equities: stockQuotes, summary: summaryQuotes,
       notice: "Informational market quotes, not account holdings. US equity feed uses selected venues, not consolidated exchange coverage.",
@@ -163,13 +191,13 @@ export function createMarketService(options: {
       const settings = config();
       const signature = JSON.stringify(settings); // memory only; never log credentials or this signature
       if (signature !== lastConfigSignature) {
-        cached = null; cachedAt = 0; cooldownUntil = 0; lastConfigSignature = signature;
+        cached = null; cachedAt = 0; cooldownUntil = 0; metadata.clear(); lastConfigSignature = signature;
       }
       if (!settings.apiKey || !settings.displayApproved || !feedReady(settings.feedMode, settings.delayMinutes)) {
         return {
           provider: "Twelve Data", configured: false, status: "setup_required", fetchedAt: null, refreshIntervalMs: MARKET_REFRESH_MS,
           equities: equities.map((item) => unavailable(item, "Market data not connected")),
-          summary: summary.map((item) => unavailable(item, "Coverage not enabled")),
+          summary: summary.filter((item) => !settings.summaryInstruments || settings.summaryInstruments.includes(item.id as SummaryId)).map((item) => unavailable(item, "Coverage not enabled")),
           notice: "Market data is not connected. Customer-display licensing and provider setup are required.",
         };
       }

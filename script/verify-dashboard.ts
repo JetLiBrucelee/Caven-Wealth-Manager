@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 import { chromium } from "playwright-core";
 import { INSTITUTION } from "../shared/institution";
-import { verifyMarketUI } from "./verify-market-ui";
+import { verifyLiveMarketFeed, verifyMarketUI } from "./verify-market-ui";
 
 export async function verifyDashboard(input: {
   base: string; username: string; password: string; code: string;
@@ -49,6 +49,9 @@ export async function verifyDashboard(input: {
     await mkdir("generated-artifacts", { recursive: true });
     await page.screenshot({ path: `generated-artifacts/ledger-dashboard-${input.label}.png`, fullPage: true });
     if (input.label === "opening" || input.label === "zero") {
+      if (input.label === "opening" && process.env.VERIFY_LIVE_MARKET === "true") {
+        await verifyLiveMarketFeed(page);
+      }
       await verifyMarketUI(page, input.balance);
     }
     if (input.historyEntries?.length) {

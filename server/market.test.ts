@@ -127,3 +127,39 @@ test("revoking display approval removes cached prices", async () => {
   assert.equal(disabled.configured, false);
   assert.ok(disabled.equities.every((quote) => quote.price === null));
 });
+
+test("gold-only selection verifies catalog identity when quote metadata omits type, and caches that verification", async () => {
+  let clock = now;
+  let metadataCalls = 0;
+  const service = createMarketService({
+    now: () => clock,
+    config: () => ({ ...config, summaryApproved: true, summaryFeedMode: "realtime", summaryInstruments: ["gold"], summarySymbols: { gold: "XAU/USD" } }),
+    fetcher: (async (input: URL | RequestInfo) => {
+      const url = new URL(String(input));
+      if (url.pathname === "/symbol_search") {
+        metadataCalls++;
+        return json({ data: [{ symbol: "XAU/USD", currency: "USD", instrument_type: "Precious Metal" }] });
+      }
+      return json(rawQuote(url.searchParams.get("symbol")!, { last_quote_at: clock / 1000, ...(url.searchParams.get("symbol") === "XAU/USD" ? { currency: undefined } : {}) }));
+    }) as typeof fetch,
+  });
+  const first = await service.snapshot();
+  assert.equal(first.status, "available");
+  assert.deepEqual(first.summary.map((quote) => quote.id), ["gold"]);
+  assert.equal(first.summary[0].price, 412.56);
+  assert.equal(first.summary[0].kind, "spot");
+  clock += 61_000;
+  assert.equal((await service.snapshot()).summary[0].state, "realtime");
+  assert.equal(metadataCalls, 1);
+});
+
+test("gold metadata cannot silently identify a different currency pair or a futures contract", async () => {
+  const service = createMarketService({
+    now: () => now,
+    config: () => ({ ...config, summaryApproved: true, summaryFeedMode: "realtime", summaryInstruments: ["gold"], summarySymbols: { gold: "XAU/USD" } }),
+    fetcher: (async (input: URL | RequestInfo) => new URL(String(input)).pathname === "/symbol_search"
+      ? json({ data: [{ symbol: "GC", currency: "USD", instrument_type: "Futures" }] })
+      : json(rawQuote(new URL(String(input)).searchParams.get("symbol")!))) as typeof fetch,
+  });
+  assert.equal((await service.snapshot()).summary[0].price, null);
+});

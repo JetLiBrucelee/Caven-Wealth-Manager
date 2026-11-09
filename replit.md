@@ -86,6 +86,8 @@ Preferred communication style: Simple, everyday language.
 - Dow, Nasdaq and gold require separately verified coverage and display rights before enabling `TWELVE_DATA_SUMMARY_DISPLAY_APPROVED`, their provider symbols (`TWELVE_DATA_DOW_SYMBOL`, `TWELVE_DATA_NASDAQ_SYMBOL`, `TWELVE_DATA_GOLD_SYMBOL`) and summary feed mode/delay. Do not substitute ETFs for indices or futures for gold spot.
 - Missing setup, stale quotes and provider failures must never produce sample prices or affect ledger balances. Market quotes are not holdings or investment performance.
 - `npm run test:market` checks provider normalization, gating, caching, closures, delays, outages and safe failure behavior without making live provider calls.
+- `TWELVE_DATA_SUMMARY_INSTRUMENTS` selects supported summary rows. Gold-only coverage uses `gold`; never expose unsupported index placeholders when stocks-and-gold-only has been selected.
+- `npm run verify:market-live` uses scoped temporary ledger test accounts, verifies actual authenticated provider quotes and a real minute refresh, runs the account regressions, then removes its own test records. It requires configured market credentials and stocks-plus-gold coverage.
 
 ### Database
 - **PostgreSQL** — primary data store, required via `DATABASE_URL` environment variable

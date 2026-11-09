@@ -2,6 +2,33 @@ import assert from "node:assert/strict";
 import type { Page } from "playwright-core";
 import type { MarketSnapshot } from "../shared/market";
 
+export async function verifyLiveMarketFeed(page: Page) {
+  const initial: MarketSnapshot = await (await page.request.get("/api/customer/market")).json();
+  const validate = (snapshot: MarketSnapshot) => {
+    assert.equal(snapshot.status, "available", `Live provider feed must be available: ${JSON.stringify([...snapshot.equities, ...snapshot.summary].map(({ symbol, state, message }) => ({ symbol, state, message })))}`);
+    assert.equal(snapshot.configured, true);
+    assert.deepEqual(snapshot.equities.map((quote) => quote.symbol), ["VOO", "BRK.B", "JPM"]);
+    assert.deepEqual(snapshot.summary.map((quote) => quote.symbol), ["XAU/USD"]);
+    for (const quote of [...snapshot.equities, ...snapshot.summary]) {
+      assert.ok(quote.price !== null && quote.price > 0);
+      assert.ok(quote.quotedAt && Number.isFinite(Date.parse(quote.quotedAt)));
+      assert.ok(["realtime", "delayed", "closed"].includes(quote.state));
+    }
+  };
+  validate(initial);
+  assert.equal(await page.getByTestId("market-summary-dow").count(), 0);
+  assert.equal(await page.getByTestId("market-summary-nasdaq").count(), 0);
+  await page.getByTestId("market-summary-gold-price").waitFor();
+  // A real minute must pass: do not fake server time, provider data, or the quote timestamp.
+  const update = await page.waitForResponse(async (response) => {
+    if (!response.url().endsWith("/api/customer/market") || response.status() !== 200) return false;
+    const snapshot: MarketSnapshot = await response.json();
+    return !!snapshot.fetchedAt && Date.parse(snapshot.fetchedAt) > Date.parse(initial.fetchedAt!);
+  }, { timeout: 80_000 });
+  validate(await update.json());
+  console.log("Live provider verification passed: authentic prices, gold-only summary, timestamps and automatic minute refresh.");
+}
+
 // Controlled network fixtures exist only in this browser test, never in application fallbacks.
 export async function verifyMarketUI(page: Page, expectedBalance: string) {
   const real = await page.request.get("/api/customer/market");

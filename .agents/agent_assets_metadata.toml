@@ -5,14 +5,14 @@ generated = []
 id = "JHPkz6MF8PMVv32mIaM1R"
 uri = "file://generated-artifacts/ledger-dashboard-opening.png"
 type = "image"
-title = "History preview — internal test account"
-description = "The recent-history card shows a completed $1,000 internal opening credit with its date, description, status, and reference. This is a temporary test account, not real customer funds."
+title = "Customer dashboard — desktop"
+description = "Verified desktop layout with actual provider quotes at capture time. The account and its $1,050.10 internal balance are temporary verification records, not real customer funds."
 logical_id = "db7a0cc3-69a1-47b0-872b-79ca270fe0f4"
-content_hash = "sha256:595d6d867cc8cebd0fa71a8f01330ab1cf81d6c810c24fc541a04c1091468815"
-size = 138562
-mtime_ms = 1794230931033
-storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:849418b0-03f9-4793-a140-a83acc9ddfd9/db7a0cc3-69a1-47b0-872b-79ca270fe0f4/39eea5da-2ef1-47e4-b34e-b423f9b31574"
-storage_version_token = "1794231173775961"
+content_hash = "sha256:a78c8a403004f36ce9dab4528858e74a1c716120186f488d1826dba523a969ad"
+size = 199349
+mtime_ms = 1794236750453
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:849418b0-03f9-4793-a140-a83acc9ddfd9/db7a0cc3-69a1-47b0-872b-79ca270fe0f4/09fa7f3c-70c6-4533-9cce-586c780b852a"
+storage_version_token = "1794236980197253"
 content_type = "image/png"
 
 [[outputs]]
@@ -41,4 +41,18 @@ size = 42004
 mtime_ms = 1794233185481
 storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:849418b0-03f9-4793-a140-a83acc9ddfd9/db624e92-0e64-4e10-95a3-20849b2fd9a1/f35130c6-b1a9-4618-9c0e-c2d0758b64dd"
 storage_version_token = "1794233225738293"
+content_type = "image/png"
+
+[[outputs]]
+id = "ZSMGoLwmYNmuqO5TbIK0G"
+uri = "file://generated-artifacts/ledger-dashboard-zero.png"
+type = "image"
+title = "Customer dashboard — mobile"
+description = "Verified mobile layout using a temporary test account. Market prices are actual provider quotes at capture time; the dashboard continues vertically below this viewport."
+logical_id = "d3cdd6c6-d6d0-4cba-a9b5-00cd750a3e84"
+content_hash = "sha256:2d0eb8fadc05477870f0994c7a3e832fc274eadb252782379e2ce151f460bc84"
+size = 113881
+mtime_ms = 1794236737377
+storage_uri = "gcs://replit-rams-assets-reed/rams/assets/repl:849418b0-03f9-4793-a140-a83acc9ddfd9/d3cdd6c6-d6d0-4cba-a9b5-00cd750a3e84/ea8beea4-4070-4dad-94d0-43b1b67501dd"
+storage_version_token = "1794236980741415"
 content_type = "image/png"
