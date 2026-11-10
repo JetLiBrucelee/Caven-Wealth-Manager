@@ -1,5 +1,5 @@
 - [Customer history copy](customer-history-copy.md) — do not show the explanatory internal-ledger/future-date paragraph on customer history screens.
 - [Admin credit reference](admin-credit-reference.md) — admin credits use CAVENWF88210B; customer outgoing payments use normal references.
-- [Market display rights](market-display-rights.md) — user confirmed Twelve Data customer-display rights are arranged; instrument coverage still needs verification.
+- [Market display rights](market-display-rights.md) — user confirmed display rights; preserve the existing Twelve Data key because they say they cannot obtain it again.
 - [Provider connectivity](provider-connectivity.md) — verify API reachability from the application runtime, not only the separate execution sandbox.
 - [Alderbridge branding](alderbridge-branding.md) — user requested Alderbridge Private Wealth throughout; keep existing support email until a replacement is provided.

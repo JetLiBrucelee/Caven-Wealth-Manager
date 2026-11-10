@@ -14,3 +14,9 @@ The user chose “Stocks and gold only” after being told this option also requ
 **Why:** The tested Dow and Nasdaq index symbols were unavailable from the selected feed, while the requested stocks and gold spot were supported; the user approved the supported subset.
 
 **How to apply:** Omit unsupported Dow and Nasdaq rows. Do not silently substitute ETFs or add indices without a new request and verified coverage.
+
+The user says they cannot obtain the Twelve Data API key again because “it's once.”
+
+**Why:** The user explicitly asked to remember this constraint during the project handoff.
+
+**How to apply:** Preserve the existing Twelve Data secret. Reuse it through secure project Secrets when moving the app; do not assume a replacement can be obtained, rotate/delete it, or put its value into GitHub, chat, instructions or memory.
